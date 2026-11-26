@@ -1,0 +1,1360 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ko Min Zaw Heim - Topup System</title>
+  <style>
+    :root {
+      --primary: #0d6efd;
+      --dark: #1e293b;
+      --bg: #f1f5f9;
+      --card: #ffffff;
+      --border: #cbd5e1;
+      --ok: #15803d;
+      --err: #b91c1c;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--dark);
+      margin: 0;
+      padding: 12px;
+    }
+    .wrap { max-width: 680px; margin: 0 auto; }
+    .card {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 14px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      border: 1px solid #e2e8f0;
+    }
+    h2, h3, h4 { margin-top: 0; margin-bottom: 10px; }
+    label { display: block; font-size: 13px; font-weight: 600; margin-top: 10px; }
+    input, select, textarea, button {
+      width: 100%;
+      margin-top: 6px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-size: 14px;
+    }
+    button {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    button:hover { opacity: 0.94; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    button.btn-green { background: #16a34a; }
+    button.btn-red { background: #dc2626; }
+    button.btn-gray { background: #64748b; }
+    button.btn-sm { width: auto; padding: 6px 10px; font-size: 12px; margin-top: 0; }
+    .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .row > * { flex: 1; min-width: 120px; }
+    .tabs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 12px; }
+    @media (max-width: 520px) {
+      .tabs { grid-template-columns: repeat(2, 1fr); }
+    }
+    .tab-btn { background: #e2e8f0; color: #1e293b; padding: 9px 4px; font-size: 12px; margin-top: 0; }
+    .tab-btn.active { background: var(--primary); color: #fff; }
+    .pay-box {
+      background: #f8fafc;
+      border: 1px dashed #94a3b8;
+      border-radius: 10px;
+      padding: 12px;
+      margin-top: 10px;
+    }
+    .price-highlight {
+      font-size: 18px;
+      font-weight: 800;
+      color: #0d6efd;
+    }
+    .otp-banner {
+      background: #fef9c3;
+      border: 1px solid #eab308;
+      padding: 10px;
+      border-radius: 8px;
+      font-weight: 700;
+      margin-top: 8px;
+    }
+    .item-card {
+      border: 1px solid #e2e8f0;
+      background: #f8fafc;
+      border-radius: 10px;
+      padding: 12px;
+      margin-top: 10px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      background: #dbeafe;
+      color: #1d4ed8;
+    }
+    .badge.closed { background: #fee2e2; color: #b91c1c; }
+    .badge.open { background: #dcfce7; color: #15803d; }
+    .ok { color: var(--ok); font-weight: 600; font-size: 13px; margin-top: 6px; }
+    .err { color: var(--err); font-weight: 600; font-size: 13px; margin-top: 6px; }
+    .hidden { display: none; }
+    img.slip-preview { max-width: 180px; max-height: 220px; border-radius: 8px; margin-top: 8px; border: 1px solid #cbd5e1; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ၁။ LOGIN + TEMP OTP + USER NAME -->
+  <div id="loginCard" class="card">
+    <h2>Topup App ဝင်ရောက်ရန်</h2>
+    <p style="font-size:13px;color:#475569;">Admin မှ သတ်မှတ်ထားသော ဖုန်းနံပါတ်ဖြင့် ဝင်ရောက်ပါ။</p>
+    <div id="modeBadge" class="badge">စစ်ဆေးနေသည်...</div>
+
+    <label>ဖုန်းနံပါတ်</label>
+    <input type="tel" id="loginPhone" placeholder="09750050068 သို့ 09762640508" />
+
+    <div id="adminPassWrap" class="hidden">
+      <label>Admin Password</label>
+      <input type="password" id="adminPassInput" placeholder="Admin Password (mzh616263)" />
+    </div>
+
+    <button id="sendOtpBtn" onclick="requestTempOtp()">ယာယီ OTP Code ရယူမည်</button>
+
+    <div id="otpSection" class="hidden">
+      <div id="tempOtpDisplay" class="otp-banner"></div>
+      <label>ယာယီ OTP Code ရိုက်ထည့်ပါ</label>
+      <input type="text" id="otpInput" placeholder="OTP ဂဏန်း ၆ လုံး" />
+
+      <label>အကောင့်ဝင်သူ အမည် (အသုံးပြုသူအမည်)</label>
+      <input type="text" id="userNameInput" placeholder="သင့်အမည် ရိုက်ထည့်ပါ" />
+
+      <button class="btn-green" onclick="completeLogin()">အတည်ပြု ဝင်ရောက်မည်</button>
+    </div>
+
+    <div id="loginMsg"></div>
+  </div>
+
+  <!-- ၂။ USER SCREEN -->
+  <div id="userScreen" class="hidden">
+    <div class="card">
+      <div class="row">
+        <div>
+          <h3 style="margin:0;">ကြိုဆိုပါသည် - <span id="uDisplayName"></span></h3>
+          <div style="font-size:12px;color:#475569;">ဖုန်း: <span id="uDisplayPhone"></span></div>
+        </div>
+        <div style="text-align:right;">
+          <button class="btn-gray btn-sm" onclick="logoutApp()">ထွက်မည်</button>
+        </div>
+      </div>
+
+      <div id="globalOrderNotice" class="err" style="margin-top:8px;"></div>
+
+      <div class="tabs" style="margin-top:12px;">
+        <button id="tab-atom" class="tab-btn active" onclick="switchUserTab('atom')">1. ATOM</button>
+        <button id="tab-mytel" class="tab-btn" onclick="switchUserTab('mytel')">2. Mytel Data</button>
+        <button id="tab-u9" class="tab-btn" onclick="switchUserTab('u9')">3. U9 Data</button>
+        <button id="tab-mpt" class="tab-btn" onclick="switchUserTab('mpt')">4. MPT Data</button>
+        <button id="tab-extra" class="tab-btn" onclick="switchUserTab('extra')">5. အခြား</button>
+      </div>
+
+      <!-- Tab 1: ATOM (Bill / Data / Plan / Voice) -->
+      <div id="panel-atom">
+        <h4>ATOM ဝန်ဆောင်မှုများ (<span id="billRateLabel">Bill 1,000ks = 950ks</span>)</h4>
+        <label>ATOM ဝန်ဆောင်မှု အမျိုးအစား</label>
+        <select id="atomSubType" onchange="onAtomSubTypeChange()">
+          <option value="bill">Atom Bill (ဖုန်းဘေလ်)</option>
+          <option value="data">Atom Data Package</option>
+          <option value="plan">Atom Plan Package</option>
+          <option value="voice">Atom ဖုန်းပြောမိနစ်</option>
+        </select>
+
+        <div id="atomBillWrap">
+          <label>Bill ပမာဏ (ကျပ်)</label>
+          <select id="billAmountSelect" onchange="document.getElementById('billCustomKs').value=''; updateOrderSummary();">
+            <option value="1000">1,000 ks</option>
+            <option value="2000">2,000 ks</option>
+            <option value="3000">3,000 ks</option>
+            <option value="5000">5,000 ks</option>
+            <option value="10000">10,000 ks</option>
+            <option value="20000">20,000 ks</option>
+            <option value="30000">30,000 ks</option>
+            <option value="50000">50,000 ks</option>
+          </select>
+          <div style="font-size:12px;color:#475569;margin-top:4px;">သို့မဟုတ် အခြား Bill ပမာဏ (1,000 - 50,000) ရိုက်ထည့်ပါ:</div>
+          <input type="number" id="billCustomKs" min="1000" max="50000" step="100" placeholder="ဥပမာ - 15000" oninput="updateOrderSummary()" />
+        </div>
+
+        <div id="atomPkgWrap" class="hidden">
+          <label>ATOM Package ရွေးချယ်ပါ</label>
+          <select id="atomPkgSelect" onchange="updateOrderSummary()"></select>
+        </div>
+      </div>
+
+      <!-- Tab 2: Mytel Data -->
+      <div id="panel-mytel" class="hidden">
+        <h4>Mytel Data Plans (<span id="mytelRateLabel">1GB = 950ks</span>)</h4>
+        <label>Mytel Data Plan ရွေးချယ်ပါ</label>
+        <select id="mytelPkgSelect" onchange="updateOrderSummary()"></select>
+      </div>
+
+      <!-- Tab 3: U9 Data -->
+      <div id="panel-u9" class="hidden">
+        <h4>U9 Data Plans (<span id="u9RateLabel">1GB = 950ks</span>)</h4>
+        <label>U9 Data Plan ရွေးချယ်ပါ</label>
+        <select id="u9PkgSelect" onchange="updateOrderSummary()"></select>
+      </div>
+
+      <!-- Tab 4: MPT Data -->
+      <div id="panel-mpt" class="hidden">
+        <h4>MPT Data Plans (<span id="mptRateLabel">1GB = 950ks</span>)</h4>
+        <label>MPT Data Plan ရွေးချယ်ပါ</label>
+        <select id="mptPkgSelect" onchange="updateOrderSummary()"></select>
+      </div>
+
+      <!-- Tab 5: Extra / Other Items -->
+      <div id="panel-extra" class="hidden">
+        <h4>အခြား Package / ပစ္စည်းများ</h4>
+        <label>ရွေးချယ်ပါ</label>
+        <select id="extraPkgSelect" onchange="updateOrderSummary()"></select>
+      </div>
+
+      <label>ငွေဖြည့်မည့် / သက်ဆိုင်ရာ ဖုန်းနံပါတ်</label>
+      <input type="tel" id="targetPhoneInput" placeholder="09xxxxxxxxx" />
+
+      <div id="priceSummaryBox" class="pay-box">
+        <div><b>ရွေးချယ်ထားသော Package:</b> <span id="sumItemName">-</span></div>
+        <div style="margin-top:4px;"><b>ကျသင့်ငွေ (ဈေးနှုန်း):</b> <span id="sumPriceKs" class="price-highlight">0</span> <b>ks</b></div>
+        <div style="margin-top:4px;"><b>အခြေအနေ:</b> <span id="sumAvailStatus">-</span></div>
+      </div>
+
+      <label>ငွေပေးချေမှု ရွေးချယ်ပါ (KPay / Wave)</label>
+      <select id="paymentMethodSelect" onchange="renderPaymentBox()">
+        <option value="KPay">KPay</option>
+        <option value="Wave">Wave Money</option>
+      </select>
+
+      <div class="pay-box">
+        <div class="row">
+          <div>
+            <div><b>Admin နံပါတ်:</b> <span id="payAccountNumber">09750050068</span></div>
+            <div><b>အမည်:</b> MZH</div>
+          </div>
+          <div style="text-align:right;">
+            <button type="button" class="btn-green btn-sm" onclick="copyPayNumber()">နံပါတ် Copy ယူမည်</button>
+          </div>
+        </div>
+        <div id="copyStatus" class="ok"></div>
+      </div>
+
+      <label>ငွေလွဲ Slip Screenshot ပို့ရန်</label>
+      <input type="file" id="slipFileInput" accept="image/*" onchange="handleSlipFile(event)" />
+      <img id="slipPreviewImg" class="slip-preview hidden" alt="Slip Preview" />
+
+      <button id="submitOrderBtn" class="btn-green" onclick="submitOrder()">Order တင်မည် (Admin ဆီ ပို့မည်)</button>
+      <div id="orderSubmitMsg"></div>
+    </div>
+
+    <div class="card">
+      <h4>Admin ထံ Error / အကူအညီ စာပို့ရန်</h4>
+      <textarea id="userErrorText" rows="2" placeholder="Error သို့မဟုတ် အခက်အခဲရှိလျှင် စာရေးပို့ပါ..."></textarea>
+      <button onclick="sendErrorToAdmin()">Error စာပို့မည်</button>
+      <div id="errMsgStatus"></div>
+    </div>
+
+    <div class="card">
+      <h4>ကျွန်ုပ်၏ Order များ၊ Admin ပြန်စာနှင့် အကြောင်းကြားစာများ</h4>
+      <div id="userOrdersAndReplies"></div>
+    </div>
+  </div>
+
+  <!-- ၃။ ADMIN SCREEN -->
+  <div id="adminScreen" class="hidden">
+    <div class="card">
+      <div class="row">
+        <div>
+          <h3 style="margin:0;">Admin Panel - <span id="admDisplayName"></span></h3>
+          <div style="font-size:12px;color:#475569;">ဖုန်း: <span id="admDisplayPhone"></span></div>
+        </div>
+        <div style="text-align:right;">
+          <button class="btn-gray btn-sm" onclick="logoutApp()">ထွက်မည်</button>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:10px;">
+        <button id="globalOrderToggleBtn" class="btn-red" onclick="toggleGlobalOrders()">Order လက်ခံမှု ခေတ္တပိတ်မည်</button>
+      </div>
+      <div id="adminGlobalStatus" class="ok"></div>
+    </div>
+
+    <div class="card">
+      <h4>ဝယ်သူများထံမှ ရောက်လာသော Order များ & Error စာများ</h4>
+      <div id="adminInboxList"></div>
+    </div>
+
+    <div class="card">
+      <h4>ဈေးနှုန်း သတ်မှတ်/ပြင်ဆင်ခြင်း & ရောင်းချမှု ဖွင့်/ပိတ် (Atom / Mytel / U9 / MPT)</h4>
+
+      <div class="item-card" style="background:#eff6ff;">
+        <div><b>အော်ပရေတာအလိုက် အခြေခံနှုန်းထားများ (သိမ်းလိုက်လျှင် သက်ဆိုင်ရာ Data Plan ဈေးနှုန်းများ အလိုအလျောက် တွက်ပေးမည်)</b></div>
+
+        <label>Atom Bill နှုန်း (Bill 1,000 ကျပ်အတွက် ကျသင့်ငွေ)</label>
+        <input type="number" id="billRateInput" min="1" placeholder="ဥပမာ - 950" />
+
+        <div class="row">
+          <div>
+            <label>Mytel Data 1GB နှုန်း (ks)</label>
+            <input type="number" id="mytelGbRateInput" min="1" placeholder="ဥပမာ - 950" />
+          </div>
+          <div>
+            <label>U9 Data 1GB နှုန်း (ks)</label>
+            <input type="number" id="u9GbRateInput" min="1" placeholder="ဥပမာ - 950" />
+          </div>
+          <div>
+            <label>MPT Data 1GB နှုန်း (ks)</label>
+            <input type="number" id="mptGbRateInput" min="1" placeholder="ဥပမာ - 950" />
+          </div>
+        </div>
+
+        <button class="btn-green" style="margin-top:10px;" onclick="saveBaseRates()">အခြေခံနှုန်းများ သိမ်းပြီး Plan ဈေးနှုန်းများ တွက်မည်</button>
+        <div id="billRateMsg"></div>
+      </div>
+
+      <div id="priceSaveStatus"></div>
+      <div id="adminCatalogList"></div>
+
+      <hr style="margin:14px 0;border:0;border-top:1px solid #e2e8f0;" />
+      <h4>တခြား ရောင်းချလို့ရမည့် ပစ္စည်း/Package အသစ် ထည့်ရန်</h4>
+      <div class="row">
+        <div>
+          <label>Operator / အမျိုးအစား</label>
+          <select id="newItemCategory">
+            <option value="Mytel Data">Mytel Data</option>
+            <option value="U9 Data">U9 Data</option>
+            <option value="MPT Data">MPT Data</option>
+            <option value="Atom Data">Atom Data</option>
+            <option value="Atom Plan">Atom Plan</option>
+            <option value="Atom Voice">Atom ဖုန်းမိနစ်</option>
+            <option value="Extra">အခြားပစ္စည်း (Extra)</option>
+          </select>
+        </div>
+        <div>
+          <label>Package / ပစ္စည်း အမည်</label>
+          <input type="text" id="newItemName" placeholder="ဥပမာ - Mytel 15GB (30 Days)" />
+        </div>
+        <div>
+          <label>GB ပမာဏ (ရှိလျှင် ထည့်ပါ၊ ဥပမာ 5)</label>
+          <input type="number" id="newItemGb" min="0" step="0.5" placeholder="0" />
+        </div>
+        <div>
+          <label>ဈေးနှုန်း (ks)</label>
+          <input type="number" id="newItemPrice" min="1" placeholder="ဥပမာ - 4500" />
+        </div>
+      </div>
+      <button class="btn-green" onclick="addNewCatalogItem()">ပစ္စည်း / Package အသစ် ထည့်မည်</button>
+      <div id="newItemMsg"></div>
+    </div>
+
+    <div class="card">
+      <h4>ခွင့်ပြုထားသော User ဖုန်းနံပါတ်များ စီမံရန် (ထည့်ရန် / ပြောင်းရန် / ဖျက်ရန်)</h4>
+      <p style="font-size:12px;color:#475569;">တစ်ကြောင်းလျှင် ဖုန်းနံပါတ်တစ်ခုစီ ထည့်နိုင်ပါသည်။</p>
+      <textarea id="adminAddPhonesInput" rows="3" placeholder="09771112223&#10;09771112224"></textarea>
+      <button class="btn-green" onclick="adminAddPhones()">ဖုန်းနံပါတ်များ ထည့်မည်</button>
+      <div id="phoneManageMsg"></div>
+
+      <input type="text" id="filterUserPhone" placeholder="ဖုန်းနံပါတ် ရှာရန်..." oninput="renderAdminUsersList()" />
+      <div id="adminUsersList"></div>
+    </div>
+
+    <div class="card">
+      <h4>ဝယ်သူ (User) ဆီသို့ အကြောင်းကြားစာ ပို့ရန်</h4>
+      <label>ပို့မည့် User နံပါတ် (ALL ဟု ရေးလျှင် User အားလုံးဆီ ပို့မည်)</label>
+      <input type="text" id="noticeTargetPhone" placeholder="ALL သို့မဟုတ် 09762640508" />
+      <label>အကြောင်းကြားစာ</label>
+      <textarea id="noticeText" rows="2" placeholder="အကြောင်းကြားစာ ရိုက်ထည့်ပါ..."></textarea>
+      <button onclick="sendNoticeToUser()">အကြောင်းကြားစာ ပို့မည်</button>
+      <div id="noticeMsg"></div>
+    </div>
+
+    <div class="card">
+      <h4>Admin Login Password ပြောင်းရန်</h4>
+      <input type="password" id="newAdminPassInput" placeholder="Admin Password အသစ် ရိုက်ထည့်ပါ" />
+      <button class="btn-gray" onclick="changeAdminPassword()">Password ပြောင်းမည်</button>
+      <div id="passChangeMsg"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // ကိုယ့် Firebase URL ရှိရင် ထည့်ပါ၊ မထည့်သေးရင် Local Mode နဲ့ အလိုအလျောက် အလုပ်လုပ်ပါမယ်
+  const DB_URL = ""; // ဥပမာ: "https://your-app-default-rtdb.firebaseio.com"
+
+  const ADMIN_DEFAULT_PHONE = "09750050068";
+  const ADMIN_DEFAULT_NAME = "Ko Min Zaw Heim";
+  const ADMIN_DEFAULT_PASS = "mzh616263";
+  const DEFAULT_BILL_RATE_PER_1000 = 950;
+  const DEFAULT_GB_RATE = 950;
+
+  const INITIAL_USER_PHONES = [
+    "09762640508",
+    "09767487312",
+    "09755927118",
+    "09775380336",
+    "09768566744",
+    "09762640501",
+    "09762640502",
+    "0976264053",
+    "09762640584",
+    "09762640505",
+    "09762640506",
+    "09762640507",
+    "09762640509",
+    "0976264010"
+  ];
+
+  const DEFAULT_CATALOG = {
+    // ATOM Data / Plan / Voice
+    data_1gb:    { id: "data_1gb",    tab: "atom",  subType: "data",  gb: 1,  category: "Atom Data",  name: "Atom Data 1GB",       price: 950,   open: true },
+    data_2gb:    { id: "data_2gb",    tab: "atom",  subType: "data",  gb: 2,  category: "Atom Data",  name: "Atom Data 2GB",       price: 1900,  open: true },
+    data_3gb:    { id: "data_3gb",    tab: "atom",  subType: "data",  gb: 3,  category: "Atom Data",  name: "Atom Data 3GB",       price: 2850,  open: true },
+    data_5gb:    { id: "data_5gb",    tab: "atom",  subType: "data",  gb: 5,  category: "Atom Data",  name: "Atom Data 5GB",       price: 4750,  open: true },
+    data_10gb:   { id: "data_10gb",   tab: "atom",  subType: "data",  gb: 10, category: "Atom Data",  name: "Atom Data 10GB",      price: 9500,  open: true },
+    plan_15k:    { id: "plan_15k",    tab: "atom",  subType: "plan",  gb: 0,  category: "Atom Plan",  name: "Atom Plan 15k",       price: 14500, open: true },
+    plan_135gb:  { id: "plan_135gb",  tab: "atom",  subType: "plan",  gb: 0,  category: "Atom Plan",  name: "Atom Plan 135GB",     price: 27500, open: true },
+    voice_150a:  { id: "voice_150a",  tab: "atom",  subType: "voice", gb: 0,  category: "Atom Voice", name: "Atom to Atom 150min", price: 2000,  open: true },
+    voice_150n:  { id: "voice_150n",  tab: "atom",  subType: "voice", gb: 0,  category: "Atom Voice", name: "Atom Any 150min",     price: 1700,  open: true },
+
+    // Mytel Data Plans
+    mytel_1gb:   { id: "mytel_1gb",   tab: "mytel", subType: "data",  gb: 1,  category: "Mytel Data", name: "Mytel Data 1GB",      price: 950,   open: true },
+    mytel_3gb:   { id: "mytel_3gb",   tab: "mytel", subType: "data",  gb: 3,  category: "Mytel Data", name: "Mytel Data 3GB",      price: 2850,  open: true },
+    mytel_5gb:   { id: "mytel_5gb",   tab: "mytel", subType: "data",  gb: 5,  category: "Mytel Data", name: "Mytel Data 5GB",      price: 4750,  open: true },
+    mytel_10gb:  { id: "mytel_10gb",  tab: "mytel", subType: "data",  gb: 10, category: "Mytel Data", name: "Mytel Data 10GB",     price: 9500,  open: true },
+
+    // U9 Data Plans
+    u9_1gb:      { id: "u9_1gb",      tab: "u9",    subType: "data",  gb: 1,  category: "U9 Data",    name: "U9 Data 1GB",         price: 950,   open: true },
+    u9_3gb:      { id: "u9_3gb",      tab: "u9",    subType: "data",  gb: 3,  category: "U9 Data",    name: "U9 Data 3GB",         price: 2850,  open: true },
+    u9_5gb:      { id: "u9_5gb",      tab: "u9",    subType: "data",  gb: 5,  category: "U9 Data",    name: "U9 Data 5GB",         price: 4750,  open: true },
+    u9_10gb:     { id: "u9_10gb",     tab: "u9",    subType: "data",  gb: 10, category: "U9 Data",    name: "U9 Data 10GB",        price: 9500,  open: true },
+
+    // MPT Data Plans
+    mpt_1gb:     { id: "mpt_1gb",     tab: "mpt",   subType: "data",  gb: 1,  category: "MPT Data",   name: "MPT Data 1GB",        price: 950,   open: true },
+    mpt_3gb:     { id: "mpt_3gb",     tab: "mpt",   subType: "data",  gb: 3,  category: "MPT Data",   name: "MPT Data 3GB",        price: 2850,  open: true },
+    mpt_5gb:     { id: "mpt_5gb",     tab: "mpt",   subType: "data",  gb: 5,  category: "MPT Data",   name: "MPT Data 5GB",        price: 4750,  open: true },
+    mpt_10gb:    { id: "mpt_10gb",    tab: "mpt",   subType: "data",  gb: 10, category: "MPT Data",   name: "MPT Data 10GB",       price: 9500,  open: true },
+
+    // Extra
+    extra_vpn:   { id: "extra_vpn",   tab: "extra", subType: "extra", gb: 0,  category: "Extra",      name: "Outline VPN Key (30d)", price: 3000, open: true }
+  };
+
+  function hasValidFirebaseUrl() {
+    const u = (DB_URL || "").trim();
+    return u.startsWith("https://") && !u.includes("YOUR_DATABASE_URL");
+  }
+
+  function localLoadState() {
+    try {
+      return JSON.parse(localStorage.getItem("mzh_local_db_v2") || "{}");
+    } catch (e) {
+      return {};
+    }
+  }
+  function localSaveState(st) {
+    localStorage.setItem("mzh_local_db_v2", JSON.stringify(st));
+  }
+
+  function defaultSettings() {
+    return {
+      ordersOpen: true,
+      adminPassword: ADMIN_DEFAULT_PASS,
+      billRatePer1000: DEFAULT_BILL_RATE_PER_1000,
+      mytelGbRate: DEFAULT_GB_RATE,
+      u9GbRate: DEFAULT_GB_RATE,
+      mptGbRate: DEFAULT_GB_RATE
+    };
+  }
+
+  function ensureLocalSeed() {
+    const st = localLoadState();
+    st.settings = { ...defaultSettings(), ...(st.settings || {}) };
+    if (!st.catalog) st.catalog = { ...DEFAULT_CATALOG };
+    if (!st.allowed_users) {
+      st.allowed_users = {};
+      for (const p of INITIAL_USER_PHONES) st.allowed_users[phoneKey(p)] = { phone: p };
+    }
+    if (!st.orders) st.orders = {};
+    if (!st.notices) st.notices = {};
+    localSaveState(st);
+    return st;
+  }
+
+  async function storeGet(path) {
+    if (!hasValidFirebaseUrl()) {
+      const st = ensureLocalSeed();
+      const parts = path.replace(/^\/+/, "").split("/");
+      let cur = st;
+      for (const part of parts) {
+        if (!part) continue;
+        cur = cur?.[part];
+      }
+      return cur ?? null;
+    }
+    const r = await fetch(`${DB_URL.replace(/\/+$/, "")}${path}.json`);
+    if (!r.ok) throw new Error("Firebase read failed");
+    return await r.json();
+  }
+
+  async function storePut(path, data) {
+    if (!hasValidFirebaseUrl()) {
+      const st = ensureLocalSeed();
+      const parts = path.replace(/^\/+/, "").split("/").filter(Boolean);
+      let cur = st;
+      for (let i = 0; i < parts.length - 1; i++) {
+        if (!cur[parts[i]]) cur[parts[i]] = {};
+        cur = cur[parts[i]];
+      }
+      cur[parts[parts.length - 1]] = data;
+      localSaveState(st);
+      return data;
+    }
+    const r = await fetch(`${DB_URL.replace(/\/+$/, "")}${path}.json`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    });
+    if (!r.ok) throw new Error("Firebase write failed");
+    return await r.json();
+  }
+
+  async function storePost(path, data) {
+    const id = "k_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+    if (!hasValidFirebaseUrl()) {
+      const st = ensureLocalSeed();
+      const parts = path.replace(/^\/+/, "").split("/").filter(Boolean);
+      let cur = st;
+      for (const part of parts) {
+        if (!cur[part]) cur[part] = {};
+        cur = cur[part];
+      }
+      cur[id] = data;
+      localSaveState(st);
+      return { name: id };
+    }
+    const r = await fetch(`${DB_URL.replace(/\/+$/, "")}${path}.json`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    });
+    if (!r.ok) throw new Error("Firebase post failed");
+    return await r.json();
+  }
+
+  async function storePatch(path, data) {
+    if (!hasValidFirebaseUrl()) {
+      const existing = (await storeGet(path)) || {};
+      await storePut(path, { ...existing, ...data });
+      return data;
+    }
+    const r = await fetch(`${DB_URL.replace(/\/+$/, "")}${path}.json`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    });
+    if (!r.ok) throw new Error("Firebase patch failed");
+    return await r.json();
+  }
+
+  async function storeDelete(path) {
+    if (!hasValidFirebaseUrl()) {
+      const st = ensureLocalSeed();
+      const parts = path.replace(/^\/+/, "").split("/").filter(Boolean);
+      let cur = st;
+      for (let i = 0; i < parts.length - 1; i++) {
+        if (!cur[parts[i]]) return;
+        cur = cur[parts[i]];
+      }
+      delete cur[parts[parts.length - 1]];
+      localSaveState(st);
+      return;
+    }
+    const r = await fetch(`${DB_URL.replace(/\/+$/, "")}${path}.json`, { method: "DELETE" });
+    if (!r.ok) throw new Error("Firebase delete failed");
+  }
+
+  let currentSession = null;
+  let generatedOtp = "";
+  let slipBase64 = "";
+  let catalogMap = { ...DEFAULT_CATALOG };
+  let allowedUsersList = [];
+  let ordersGlobal = [];
+  let noticesGlobal = [];
+  let ordersOpenFlag = true;
+  let adminPasswordVal = ADMIN_DEFAULT_PASS;
+  let billRatePer1000 = DEFAULT_BILL_RATE_PER_1000;
+  let mytelGbRate = DEFAULT_GB_RATE;
+  let u9GbRate = DEFAULT_GB_RATE;
+  let mptGbRate = DEFAULT_GB_RATE;
+  let lastKnownOrderCount = -1;
+  let lastKnownNoticeCount = -1;
+  let pollHandle = null;
+
+  function cleanPhone(v) { return (v || "").replace(/\s+/g, "").trim(); }
+  function phoneKey(p) { return cleanPhone(p).replace(/[^0-9a-zA-Z]/g, "_"); }
+  function esc(s) {
+    return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  function updateModeBadge() {
+    const b = document.getElementById("modeBadge");
+    if (hasValidFirebaseUrl()) {
+      b.textContent = "Mode: Firebase Cloud (တခြားဖုန်းများနှင့် ချိတ်ဆက်နိုင်)";
+      b.className = "badge open";
+    } else {
+      b.textContent = "Mode: Local Device (ဤဖုန်းထဲတွင် အလုပ်လုပ်နေသည်)";
+      b.className = "badge";
+    }
+  }
+  updateModeBadge();
+
+  function playAlertSound(type = "order") {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = type === "order" ? "triangle" : "sine";
+      osc.frequency.setValueAtTime(type === "order" ? 880 : 660, ctx.currentTime);
+      osc.frequency.setValueAtTime(type === "order" ? 1174 : 880, ctx.currentTime + 0.14);
+      gain.gain.setValueAtTime(0.18, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.36);
+    } catch (e) {}
+  }
+
+  async function ensureSeedData() {
+    const usersData = await storeGet("/allowed_users");
+    if (!usersData) {
+      for (const p of INITIAL_USER_PHONES) {
+        await storePut(`/allowed_users/${phoneKey(p)}`, { phone: p });
+      }
+    }
+    const catData = await storeGet("/catalog");
+    if (!catData) await storePut("/catalog", DEFAULT_CATALOG);
+    const settings = await storeGet("/settings");
+    if (!settings) {
+      await storePut("/settings", defaultSettings());
+    }
+  }
+
+  document.getElementById("loginPhone").addEventListener("input", (e) => {
+    const p = cleanPhone(e.target.value);
+    document.getElementById("adminPassWrap").classList.toggle("hidden", p !== ADMIN_DEFAULT_PHONE);
+  });
+
+  async function requestTempOtp() {
+    const msgEl = document.getElementById("loginMsg");
+    msgEl.className = "";
+    msgEl.textContent = "စစ်ဆေးနေပါသည်...";
+
+    const phone = cleanPhone(document.getElementById("loginPhone").value);
+    if (!phone) {
+      msgEl.className = "err";
+      msgEl.textContent = "ဖုန်းနံပါတ် ရိုက်ထည့်ပါ။";
+      return;
+    }
+
+    try {
+      await ensureSeedData();
+      const settings = (await storeGet("/settings")) || {};
+      adminPasswordVal = settings.adminPassword || ADMIN_DEFAULT_PASS;
+
+      if (phone === ADMIN_DEFAULT_PHONE) {
+        const passInput = (document.getElementById("adminPassInput").value || "").trim();
+        if (passInput !== adminPasswordVal) {
+          msgEl.className = "err";
+          msgEl.textContent = "Admin Password မှားယွင်းနေပါသည်။ (Default: mzh616263)";
+          return;
+        }
+      } else {
+        const usersRaw = (await storeGet("/allowed_users")) || {};
+        const allowed = Object.values(usersRaw).map(u => cleanPhone(u.phone || u));
+        if (!allowed.includes(phone)) {
+          msgEl.className = "err";
+          msgEl.textContent = "ဤဖုန်းနံပါတ်သည် Admin ခွင့်ပြုထားသော စာရင်းထဲ မပါဝင်ပါ။";
+          return;
+        }
+      }
+
+      generatedOtp = String(Math.floor(100000 + Math.random() * 900000));
+      document.getElementById("tempOtpDisplay").textContent = `ယာယီ OTP Code: ${generatedOtp}`;
+      document.getElementById("otpInput").value = generatedOtp;
+      if (phone === ADMIN_DEFAULT_PHONE && !document.getElementById("userNameInput").value) {
+        document.getElementById("userNameInput").value = ADMIN_DEFAULT_NAME;
+      }
+      document.getElementById("otpSection").classList.remove("hidden");
+      msgEl.className = "ok";
+      msgEl.textContent = "ယာယီ OTP Code ထုတ်ပေးပြီးပါပြီ။ အမည်ထည့်ပြီး ဝင်ရောက်နိုင်ပါသည်။";
+    } catch (err) {
+      msgEl.className = "err";
+      msgEl.textContent = "Firebase URL မှားယွင်းနေပါသည်။ DB_URL ကို စစ်ဆေးပါ။";
+    }
+  }
+
+  function completeLogin() {
+    const phone = cleanPhone(document.getElementById("loginPhone").value);
+    const otpEntered = (document.getElementById("otpInput").value || "").trim();
+    const accName = (document.getElementById("userNameInput").value || "").trim();
+    const msgEl = document.getElementById("loginMsg");
+
+    if (otpEntered !== generatedOtp || !generatedOtp) {
+      msgEl.className = "err";
+      msgEl.textContent = "ယာယီ OTP Code မမှန်ကန်ပါ။";
+      return;
+    }
+    if (!accName) {
+      msgEl.className = "err";
+      msgEl.textContent = "အကောင့်ဝင်သူ အမည် ရိုက်ထည့်ပါ။";
+      return;
+    }
+
+    currentSession = {
+      role: phone === ADMIN_DEFAULT_PHONE ? "admin" : "user",
+      phone,
+      name: accName
+    };
+    localStorage.setItem("mzh_topup_session", JSON.stringify(currentSession));
+    enterAppScreen();
+  }
+
+  function enterAppScreen() {
+    document.getElementById("loginCard").classList.add("hidden");
+    if (pollHandle) clearInterval(pollHandle);
+
+    if (currentSession.role === "admin") {
+      document.getElementById("userScreen").classList.add("hidden");
+      document.getElementById("adminScreen").classList.remove("hidden");
+      document.getElementById("admDisplayName").textContent = currentSession.name;
+      document.getElementById("admDisplayPhone").textContent = currentSession.phone;
+      syncAllData(true);
+      pollHandle = setInterval(() => syncAllData(false), 5000);
+    } else {
+      document.getElementById("adminScreen").classList.add("hidden");
+      document.getElementById("userScreen").classList.remove("hidden");
+      document.getElementById("uDisplayName").textContent = currentSession.name;
+      document.getElementById("uDisplayPhone").textContent = currentSession.phone;
+      renderPaymentBox();
+      syncAllData(true);
+      pollHandle = setInterval(() => syncAllData(false), 5000);
+    }
+  }
+
+  function logoutApp() {
+    localStorage.removeItem("mzh_topup_session");
+    currentSession = null;
+    if (pollHandle) clearInterval(pollHandle);
+    document.getElementById("adminScreen").classList.add("hidden");
+    document.getElementById("userScreen").classList.add("hidden");
+    document.getElementById("loginCard").classList.remove("hidden");
+    document.getElementById("otpSection").classList.add("hidden");
+  }
+
+  let activeUserTab = "atom";
+  function switchUserTab(tab) {
+    activeUserTab = tab;
+    ["atom", "mytel", "u9", "mpt", "extra"].forEach(t => {
+      document.getElementById(`tab-${t}`).classList.toggle("active", t === tab);
+      document.getElementById(`panel-${t}`).classList.toggle("hidden", t !== tab);
+    });
+    updateOrderSummary();
+  }
+
+  function onAtomSubTypeChange() {
+    const sub = document.getElementById("atomSubType").value;
+    document.getElementById("atomBillWrap").classList.toggle("hidden", sub !== "bill");
+    document.getElementById("atomPkgWrap").classList.toggle("hidden", sub === "bill");
+    populateAtomPkgSelect();
+    updateOrderSummary();
+  }
+
+  function computeBillPrice(ks) {
+    const val = Number(ks || 0);
+    if (!val || val < 1000) return 0;
+    return Math.round((val / 1000) * billRatePer1000);
+  }
+
+  function populateAtomPkgSelect() {
+    const sub = document.getElementById("atomSubType").value;
+    const sel = document.getElementById("atomPkgSelect");
+    if (!sel) return;
+    const prev = sel.value;
+    const items = Object.values(catalogMap).filter(i => i.tab === "atom" && i.subType === sub);
+    sel.innerHTML = items.map(i =>
+      `<option value="${i.id}">${esc(i.name)} - ${Number(i.price).toLocaleString()} ks ${i.open ? "" : "(ပိတ်ထားသည်)"}</option>`
+    ).join("");
+    if (prev && items.some(i => i.id === prev)) sel.value = prev;
+  }
+
+  function populateCatalogSelects() {
+    document.getElementById("billRateLabel").textContent = `Bill 1,000ks = ${billRatePer1000.toLocaleString()}ks`;
+    document.getElementById("mytelRateLabel").textContent = `1GB = ${mytelGbRate.toLocaleString()}ks`;
+    document.getElementById("u9RateLabel").textContent = `1GB = ${u9GbRate.toLocaleString()}ks`;
+    document.getElementById("mptRateLabel").textContent = `1GB = ${mptGbRate.toLocaleString()}ks`;
+
+    populateAtomPkgSelect();
+
+    const mytelSel = document.getElementById("mytelPkgSelect");
+    const u9Sel = document.getElementById("u9PkgSelect");
+    const mptSel = document.getElementById("mptPkgSelect");
+    const extraSel = document.getElementById("extraPkgSelect");
+
+    const prevMytel = mytelSel.value;
+    const prevU9 = u9Sel.value;
+    const prevMpt = mptSel.value;
+    const prevExtra = extraSel.value;
+
+    const items = Object.values(catalogMap);
+    const mytelItems = items.filter(i => i.tab === "mytel");
+    const u9Items = items.filter(i => i.tab === "u9");
+    const mptItems = items.filter(i => i.tab === "mpt");
+    const extraItems = items.filter(i => i.tab === "extra");
+
+    mytelSel.innerHTML = mytelItems.map(i => `<option value="${i.id}">${esc(i.name)} - ${Number(i.price).toLocaleString()} ks ${i.open ? "" : "(ပိတ်ထားသည်)"}</option>`).join("");
+    u9Sel.innerHTML = u9Items.map(i => `<option value="${i.id}">${esc(i.name)} - ${Number(i.price).toLocaleString()} ks ${i.open ? "" : "(ပိတ်ထားသည်)"}</option>`).join("");
+    mptSel.innerHTML = mptItems.map(i => `<option value="${i.id}">${esc(i.name)} - ${Number(i.price).toLocaleString()} ks ${i.open ? "" : "(ပိတ်ထားသည်)"}</option>`).join("");
+    extraSel.innerHTML = extraItems.map(i => `<option value="${i.id}">${esc(i.name)} (${esc(i.category)}) - ${Number(i.price).toLocaleString()} ks ${i.open ? "" : "(ပိတ်ထားသည်)"}</option>`).join("");
+
+    if (prevMytel && catalogMap[prevMytel]) mytelSel.value = prevMytel;
+    if (prevU9 && catalogMap[prevU9]) u9Sel.value = prevU9;
+    if (prevMpt && catalogMap[prevMpt]) mptSel.value = prevMpt;
+    if (prevExtra && catalogMap[prevExtra]) extraSel.value = prevExtra;
+
+    updateOrderSummary();
+  }
+
+  function getSelectedOrderSpec() {
+    if (!ordersOpenFlag) {
+      return { valid: false, reason: "Admin မှ Order လက်ခံမှု ခေတ္တပိတ်ထားပါသည်။", itemName: "-", priceKs: 0 };
+    }
+
+    if (activeUserTab === "atom") {
+      const sub = document.getElementById("atomSubType").value;
+      if (sub === "bill") {
+        const custom = Number(document.getElementById("billCustomKs").value || 0);
+        const sel = Number(document.getElementById("billAmountSelect").value || 1000);
+        const ks = custom > 0 ? custom : sel;
+        if (ks < 1000 || ks > 50000) {
+          return { valid: false, reason: "Bill ပမာဏ 1,000ks မှ 50,000ks အတွင်း ဖြစ်ရပါမည်။", itemName: `Atom Bill ${ks}ks`, priceKs: 0 };
+        }
+        return { valid: true, reason: "ရောင်းချရန် ဖွင့်ထားသည်", itemName: `Atom Bill ${ks.toLocaleString()}ks`, priceKs: computeBillPrice(ks) };
+      }
+      const id = document.getElementById("atomPkgSelect").value;
+      const item = catalogMap[id];
+      if (!item) return { valid: false, reason: "Package မရွေးချယ်ရသေးပါ။", itemName: "-", priceKs: 0 };
+      if (!item.open) return { valid: false, reason: `ဤ Package (${item.name}) ကို Admin မှ ခေတ္တပိတ်ထားပါသည်။`, itemName: item.name, priceKs: item.price };
+      return { valid: true, reason: "ရောင်းချရန် ဖွင့်ထားသည်", itemName: item.name, priceKs: Number(item.price) };
+    }
+
+    const selectMap = {
+      mytel: "mytelPkgSelect",
+      u9: "u9PkgSelect",
+      mpt: "mptPkgSelect",
+      extra: "extraPkgSelect"
+    };
+    const id = document.getElementById(selectMap[activeUserTab]).value;
+    const item = catalogMap[id];
+    if (!item) return { valid: false, reason: "Package မရွေးချယ်ရသေးပါ။", itemName: "-", priceKs: 0 };
+    if (!item.open) {
+      return { valid: false, reason: `ဤ Package (${item.name}) ကို Admin မှ ခေတ္တပိတ်ထားပါသည်။`, itemName: item.name, priceKs: item.price };
+    }
+    return { valid: true, reason: "ရောင်းချရန် ဖွင့်ထားသည်", itemName: item.name, priceKs: Number(item.price) };
+  }
+
+  function updateOrderSummary() {
+    const spec = getSelectedOrderSpec();
+    document.getElementById("sumItemName").textContent = spec.itemName;
+    document.getElementById("sumPriceKs").textContent = Number(spec.priceKs || 0).toLocaleString();
+    const stEl = document.getElementById("sumAvailStatus");
+    stEl.textContent = spec.reason;
+    stEl.className = spec.valid ? "ok" : "err";
+    document.getElementById("submitOrderBtn").disabled = !spec.valid;
+  }
+
+  function renderPaymentBox() {
+    const method = document.getElementById("paymentMethodSelect").value;
+    document.getElementById("payAccountNumber").textContent = method === "KPay" ? "09750050068" : "09672435183";
+    document.getElementById("copyStatus").textContent = "";
+  }
+
+  function copyPayNumber() {
+    const num = document.getElementById("payAccountNumber").textContent.trim();
+    navigator.clipboard?.writeText(num).catch(() => {});
+    const inp = document.createElement("input");
+    inp.value = num;
+    document.body.appendChild(inp);
+    inp.select();
+    document.execCommand("copy");
+    document.body.removeChild(inp);
+    document.getElementById("copyStatus").textContent = `နံပါတ် ${num} (MZH) ကို Copy ကူးပြီးပါပြီ။`;
+  }
+
+  function handleSlipFile(ev) {
+    const file = ev.target.files?.[0];
+    if (!file) { slipBase64 = ""; return; }
+    const reader = new FileReader();
+    reader.onload = () => {
+      slipBase64 = reader.result;
+      const img = document.getElementById("slipPreviewImg");
+      img.src = slipBase64;
+      img.classList.remove("hidden");
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function submitOrder() {
+    const spec = getSelectedOrderSpec();
+    const targetPhone = cleanPhone(document.getElementById("targetPhoneInput").value);
+    const msgEl = document.getElementById("orderSubmitMsg");
+
+    if (!spec.valid) {
+      msgEl.className = "err";
+      msgEl.textContent = spec.reason;
+      return;
+    }
+    if (!targetPhone) {
+      msgEl.className = "err";
+      msgEl.textContent = "ငွေဖြည့်မည့် ဖုန်းနံပါတ် ရိုက်ထည့်ပါ။";
+      return;
+    }
+
+    await storePost("/orders", {
+      type: "order",
+      senderPhone: currentSession.phone,
+      senderName: currentSession.name,
+      targetPhone,
+      itemName: spec.itemName,
+      priceKs: spec.priceKs,
+      payMethod: document.getElementById("paymentMethodSelect").value,
+      slipData: slipBase64 || "",
+      status: "Pending",
+      adminReply: "",
+      completeSlip: "",
+      createdAt: new Date().toLocaleString()
+    });
+    playAlertSound("order");
+    msgEl.className = "ok";
+    msgEl.textContent = "Order တင်ပြီးပါပြီ။";
+    document.getElementById("targetPhoneInput").value = "";
+    document.getElementById("billCustomKs").value = "";
+    document.getElementById("slipFileInput").value = "";
+    document.getElementById("slipPreviewImg").classList.add("hidden");
+    slipBase64 = "";
+    await syncAllData(false);
+  }
+
+  async function sendErrorToAdmin() {
+    const txt = (document.getElementById("userErrorText").value || "").trim();
+    const st = document.getElementById("errMsgStatus");
+    if (!txt) {
+      st.className = "err";
+      st.textContent = "Error စာသား ရိုက်ထည့်ပါ။";
+      return;
+    }
+    await storePost("/orders", {
+      type: "error_report",
+      senderPhone: currentSession.phone,
+      senderName: currentSession.name,
+      itemName: "Error / Support Report",
+      message: txt,
+      status: "Error Sent",
+      adminReply: "",
+      createdAt: new Date().toLocaleString()
+    });
+    playAlertSound("order");
+    document.getElementById("userErrorText").value = "";
+    st.className = "ok";
+    st.textContent = "Error စာ ပို့ပြီးပါပြီ။";
+    await syncAllData(false);
+  }
+
+  function isAdminEditingPrice() {
+    const active = document.activeElement;
+    if (!active) return false;
+    return ["billRateInput", "mytelGbRateInput", "u9GbRateInput", "mptGbRateInput"].includes(active.id) ||
+      (active.id && active.id.startsWith("priceInput_"));
+  }
+
+  async function syncAllData(isInitial) {
+    try {
+      const [settings, catRaw, usersRaw, ordersRaw, noticesRaw] = await Promise.all([
+        storeGet("/settings"),
+        storeGet("/catalog"),
+        storeGet("/allowed_users"),
+        storeGet("/orders"),
+        storeGet("/notices")
+      ]);
+
+      ordersOpenFlag = settings?.ordersOpen !== false;
+      adminPasswordVal = settings?.adminPassword || ADMIN_DEFAULT_PASS;
+      billRatePer1000 = Number(settings?.billRatePer1000) > 0 ? Number(settings.billRatePer1000) : DEFAULT_BILL_RATE_PER_1000;
+      mytelGbRate = Number(settings?.mytelGbRate) > 0 ? Number(settings.mytelGbRate) : DEFAULT_GB_RATE;
+      u9GbRate = Number(settings?.u9GbRate) > 0 ? Number(settings.u9GbRate) : DEFAULT_GB_RATE;
+      mptGbRate = Number(settings?.mptGbRate) > 0 ? Number(settings.mptGbRate) : DEFAULT_GB_RATE;
+
+      catalogMap = catRaw || { ...DEFAULT_CATALOG };
+      allowedUsersList = usersRaw
+        ? Object.entries(usersRaw).map(([key, v]) => ({ key, phone: cleanPhone(v.phone || v) })).filter(x => x.phone)
+        : [];
+      ordersGlobal = ordersRaw ? Object.entries(ordersRaw).map(([id, v]) => ({ id, ...v })).reverse() : [];
+      noticesGlobal = noticesRaw ? Object.entries(noticesRaw).map(([id, v]) => ({ id, ...v })).reverse() : [];
+
+      if (currentSession.role === "admin") {
+        if (!isInitial && lastKnownOrderCount >= 0 && ordersGlobal.length > lastKnownOrderCount) {
+          playAlertSound("order");
+        }
+        lastKnownOrderCount = ordersGlobal.length;
+        if (!isAdminEditingPrice()) {
+          renderAdminView();
+        }
+      } else {
+        const myOrders = ordersGlobal.filter(o => o.senderPhone === currentSession.phone);
+        const myRepliesCount = myOrders.filter(o => o.adminReply || o.completeSlip).length;
+        const myNoticesCount = noticesGlobal.filter(n => n.targetPhone === "ALL" || n.targetPhone === currentSession.phone).length;
+        const totalIncoming = myRepliesCount + myNoticesCount;
+        if (!isInitial && lastKnownNoticeCount >= 0 && totalIncoming > lastKnownNoticeCount) {
+          playAlertSound("reply");
+        }
+        lastKnownNoticeCount = totalIncoming;
+        renderUserView();
+      }
+    } catch (e) {}
+  }
+
+  function renderUserView() {
+    document.getElementById("globalOrderNotice").textContent = ordersOpenFlag ? "" : "Admin မှ လက်ရှိ Order လက်ခံမှု ခေတ္တပိတ်ထားပါသည်။";
+    populateCatalogSelects();
+
+    const container = document.getElementById("userOrdersAndReplies");
+    const myOrders = ordersGlobal.filter(o => o.senderPhone === currentSession.phone);
+    const myNotices = noticesGlobal.filter(n => n.targetPhone === "ALL" || n.targetPhone === currentSession.phone);
+
+    let html = "";
+    for (const n of myNotices) {
+      html += `
+        <div class="item-card" style="background:#eff6ff;">
+          <span class="badge">Admin အကြောင်းကြားစာ</span>
+          <div style="font-size:12px;color:#475569;margin-top:4px;">${esc(n.createdAt)}</div>
+          <div style="margin-top:4px;"><b>${esc(n.text)}</b></div>
+        </div>
+      `;
+    }
+    for (const o of myOrders) {
+      html += `
+        <div class="item-card">
+          <div class="row">
+            <div><b>${esc(o.itemName)}</b> ${o.targetPhone ? `(${esc(o.targetPhone)})` : ""}</div>
+            <div style="text-align:right;"><span class="badge">${esc(o.status || "Pending")}</span></div>
+          </div>
+          <div style="font-size:12px;color:#475569;">${esc(o.createdAt)} ${o.priceKs ? `| ${Number(o.priceKs).toLocaleString()}ks` : ""}</div>
+          ${o.message ? `<div style="margin-top:4px;">စာ: ${esc(o.message)}</div>` : ""}
+          ${o.adminReply ? `<div class="ok">Admin ပြန်စာ: ${esc(o.adminReply)}</div>` : ""}
+          ${o.completeSlip ? `<div><div class="ok">ပြီးကြောင်း Screenshot:</div><img src="${o.completeSlip}" class="slip-preview" /></div>` : ""}
+        </div>
+      `;
+    }
+    container.innerHTML = html || "<p style='color:#64748b;'>မှတ်တမ်း မရှိသေးပါ။</p>";
+  }
+
+  const tempCompleteSlips = {};
+  function attachCompleteSlip(orderId, ev) {
+    const file = ev.target.files?.[0];
+    if (!file) return;
+    const r = new FileReader();
+    r.onload = () => { tempCompleteSlips[orderId] = r.result; };
+    r.readAsDataURL(file);
+  }
+
+  function renderAdminView() {
+    const btn = document.getElementById("globalOrderToggleBtn");
+    btn.textContent = ordersOpenFlag ? "Order လက်ခံမှု ခေတ္တပိတ်မည် (ဖွင့်ထားသည်)" : "Order လက်ခံမှု ပြန်ဖွင့်မည် (ပိတ်ထားသည်)";
+    btn.className = ordersOpenFlag ? "btn-red" : "btn-green";
+
+    const rateInp = document.getElementById("billRateInput");
+    if (rateInp) rateInp.value = billRatePer1000;
+    const mInp = document.getElementById("mytelGbRateInput");
+    if (mInp) mInp.value = mytelGbRate;
+    const uInp = document.getElementById("u9GbRateInput");
+    if (uInp) uInp.value = u9GbRate;
+    const pInp = document.getElementById("mptGbRateInput");
+    if (pInp) pInp.value = mptGbRate;
+
+    const inboxEl = document.getElementById("adminInboxList");
+    inboxEl.innerHTML = ordersGlobal.length
+      ? ordersGlobal.slice(0, 30).map(o => `
+          <div class="item-card">
+            <div class="row">
+              <div>
+                <span class="badge">${esc(o.type === "error_report" ? "Error Report" : "Order")}</span>
+                <b>${esc(o.senderName || "")}</b> (${esc(o.senderPhone)})
+              </div>
+              <div style="text-align:right;"><span class="badge">${esc(o.status || "Pending")}</span></div>
+            </div>
+            <div style="font-size:12px;color:#475569;margin-top:4px;">${esc(o.createdAt)}</div>
+            <div style="margin-top:6px;">
+              <b>Package/အကြောင်းအရာ:</b> ${esc(o.itemName)}
+              ${o.targetPhone ? `<br/><b>ငွေဖြည့်မည့် နံပါတ်:</b> ${esc(o.targetPhone)}` : ""}
+              ${o.priceKs ? `<br/><b>ကျသင့်ငွေ:</b> ${Number(o.priceKs).toLocaleString()}ks (${esc(o.payMethod || "")})` : ""}
+              ${o.message ? `<br/><b>စာသား:</b> ${esc(o.message)}` : ""}
+            </div>
+            ${o.slipData ? `<div><div style="font-size:12px;margin-top:6px;"><b>ဝယ်သူပို့သော Slip:</b></div><img src="${o.slipData}" class="slip-preview" /></div>` : ""}
+            <label>Admin ပြန်စာ / အကြောင်းကြားစာ</label>
+            <input type="text" id="replyText_${o.id}" value="${esc(o.adminReply || "")}" placeholder="ပြီးပါပြီ / လုပ်ဆောင်နေပါသည်..." />
+            <label>ပြီးကြောင်း SS ထည့်ရန်</label>
+            <input type="file" accept="image/*" onchange="attachCompleteSlip('${o.id}', event)" />
+            <div class="row" style="margin-top:8px;">
+              <button class="btn-green btn-sm" onclick="adminSaveOrderResponse('${o.id}', 'Completed')">ပြီးကြောင်း ပို့မည်</button>
+              <button class="btn-sm" onclick="adminSaveOrderResponse('${o.id}', 'Replied')">စာပြန်ပို့မည်</button>
+              <button class="btn-red btn-sm" onclick="adminDeleteOrder('${o.id}')">ဖျက်မည်</button>
+            </div>
+          </div>
+        `).join("")
+      : "<p style='color:#64748b;'>ရောက်လာသော Order / စာ မရှိသေးပါ။</p>";
+
+    const catEl = document.getElementById("adminCatalogList");
+    catEl.innerHTML = Object.values(catalogMap).map(item => `
+      <div class="item-card">
+        <div class="row">
+          <div>
+            <b>${esc(item.name)}</b> <span style="font-size:12px;color:#64748b;">(${esc(item.category)}${item.gb ? ` | ${item.gb}GB` : ""})</span>
+            <span class="badge ${item.open ? "open" : "closed"}">${item.open ? "ဖွင့်ထားသည်" : "ပိတ်ထားသည်"}</span>
+            <div style="font-size:12px;color:#334155;margin-top:2px;">လက်ရှိဈေးနှုန်း: <b>${Number(item.price || 0).toLocaleString()} ks</b></div>
+          </div>
+          <div style="text-align:right;">
+            <button class="btn-sm ${item.open ? "btn-red" : "btn-green"}" onclick="toggleCatalogOpen('${item.id}', ${!item.open})">
+              ${item.open ? "ပိတ်မည်" : "ဖွင့်မည်"}
+            </button>
+          </div>
+        </div>
+        <div class="row" style="margin-top:6px;">
+          <input type="number" id="priceInput_${item.id}" min="1" value="${Number(item.price || 0)}" placeholder="ဈေးနှုန်းအသစ် (ks)" />
+          <button class="btn-sm" onclick="saveCatalogPrice('${item.id}')">ဈေးနှုန်း သိမ်းမည်</button>
+        </div>
+      </div>
+    `).join("");
+
+    renderAdminUsersList();
+  }
+
+  async function saveBaseRates() {
+    const bVal = Number(document.getElementById("billRateInput")?.value || 0);
+    const mVal = Number(document.getElementById("mytelGbRateInput")?.value || 0);
+    const uVal = Number(document.getElementById("u9GbRateInput")?.value || 0);
+    const pVal = Number(document.getElementById("mptGbRateInput")?.value || 0);
+    const msgEl = document.getElementById("billRateMsg");
+
+    if (bVal <= 0 || mVal <= 0 || uVal <= 0 || pVal <= 0) {
+      msgEl.className = "err";
+      msgEl.textContent = "နှုန်းထားအားလုံးသည် 0 ထက်ကြီးသော ဂဏန်းများ ဖြစ်ရပါမည်။";
+      return;
+    }
+
+    billRatePer1000 = bVal;
+    mytelGbRate = mVal;
+    u9GbRate = uVal;
+    mptGbRate = pVal;
+
+    await storePatch("/settings", {
+      billRatePer1000: bVal,
+      mytelGbRate: mVal,
+      u9GbRate: uVal,
+      mptGbRate: pVal
+    });
+
+    // GB သတ်မှတ်ထားသော Data Package များ၏ ဈေးနှုန်းကို အလိုအလျောက် တွက်ချက်သိမ်းဆည်းခြင်း
+    for (const [id, item] of Object.entries(catalogMap)) {
+      const gb = Number(item.gb || 0);
+      if (gb > 0) {
+        let newPrice = null;
+        if (item.tab === "mytel") newPrice = Math.round(gb * mVal);
+        else if (item.tab === "u9") newPrice = Math.round(gb * uVal);
+        else if (item.tab === "mpt") newPrice = Math.round(gb * pVal);
+        if (newPrice !== null) {
+          catalogMap[id].price = newPrice;
+          await storePatch(`/catalog/${id}`, { price: newPrice });
+        }
+      }
+    }
+
+    msgEl.className = "ok";
+    msgEl.textContent = `နှုန်းထားများ သိမ်းပြီးပါပြီ (Bill 1k=${bVal}ks | Mytel 1GB=${mVal}ks | U9 1GB=${uVal}ks | MPT 1GB=${pVal}ks)။`;
+    await syncAllData(false);
+  }
+
+  async function adminSaveOrderResponse(orderId, statusLabel) {
+    const replyVal = (document.getElementById(`replyText_${orderId}`)?.value || "").trim();
+    const patchObj = { status: statusLabel, adminReply: replyVal };
+    if (tempCompleteSlips[orderId]) patchObj.completeSlip = tempCompleteSlips[orderId];
+    await storePatch(`/orders/${orderId}`, patchObj);
+    await syncAllData(false);
+  }
+
+  async function adminDeleteOrder(orderId) {
+    await storeDelete(`/orders/${orderId}`);
+    await syncAllData(false);
+  }
+
+  async function toggleGlobalOrders() {
+    ordersOpenFlag = !ordersOpenFlag;
+    await storePatch("/settings", { ordersOpen: ordersOpenFlag });
+    document.getElementById("adminGlobalStatus").textContent = ordersOpenFlag ? "Order လက်ခံမှု ဖွင့်ထားပါပြီ။" : "Order လက်ခံမှု ပိတ်ထားပါပြီ။";
+    await syncAllData(false);
+  }
+
+  async function saveCatalogPrice(id) {
+    const inp = document.getElementById(`priceInput_${id}`);
+    const statusEl = document.getElementById("priceSaveStatus");
+    const val = Number(inp?.value);
+    if (!Number.isFinite(val) || val <= 0) {
+      statusEl.className = "err";
+      statusEl.textContent = "ဈေးနှုန်းသည် 0 ထက်ကြီးသော ဂဏန်း ဖြစ်ရပါမည်။";
+      return;
+    }
+    await storePatch(`/catalog/${id}`, { price: val });
+    if (catalogMap[id]) catalogMap[id].price = val;
+    statusEl.className = "ok";
+    statusEl.textContent = `✅ "${catalogMap[id]?.name || id}" ဈေးနှုန်းကို ${val.toLocaleString()} ks သို့ ပြောင်းလဲသိမ်းဆည်းပြီးပါပြီ။`;
+    await syncAllData(false);
+  }
+
+  async function toggleCatalogOpen(id, nextOpen) {
+    await storePatch(`/catalog/${id}`, { open: nextOpen });
+    await syncAllData(false);
+  }
+
+  async function addNewCatalogItem() {
+    const category = document.getElementById("newItemCategory").value;
+    const name = (document.getElementById("newItemName").value || "").trim();
+    const gb = Number(document.getElementById("newItemGb").value || 0);
+    const price = Number(document.getElementById("newItemPrice").value || 0);
+    const msgEl = document.getElementById("newItemMsg");
+    if (!name || price <= 0) {
+      msgEl.className = "err";
+      msgEl.textContent = "အမည်နှင့် ဈေးနှုန်း ထည့်ပါ။";
+      return;
+    }
+
+    let tab = "extra";
+    let subType = "extra";
+    if (category === "Mytel Data") { tab = "mytel"; subType = "data"; }
+    else if (category === "U9 Data") { tab = "u9"; subType = "data"; }
+    else if (category === "MPT Data") { tab = "mpt"; subType = "data"; }
+    else if (category === "Atom Data") { tab = "atom"; subType = "data"; }
+    else if (category === "Atom Plan") { tab = "atom"; subType = "plan"; }
+    else if (category === "Atom Voice") { tab = "atom"; subType = "voice"; }
+
+    const id = "item_" + Date.now();
+    await storePut(`/catalog/${id}`, { id, tab, subType, gb, category, name, price, open: true });
+    document.getElementById("newItemName").value = "";
+    document.getElementById("newItemGb").value = "";
+    document.getElementById("newItemPrice").value = "";
+    msgEl.className = "ok";
+    msgEl.textContent = "ပစ္စည်း/Package အသစ် ထည့်ပြီးပါပြီ။";
+    await syncAllData(false);
+  }
+
+  async function adminAddPhones() {
+    const raw = document.getElementById("adminAddPhonesInput").value || "";
+    const list = raw.split(/[\n,]+/).map(cleanPhone).filter(p => p && p !== ADMIN_DEFAULT_PHONE);
+    const msgEl = document.getElementById("phoneManageMsg");
+    if (!list.length) {
+      msgEl.className = "err";
+      msgEl.textContent = "ထည့်မည့် ဖုန်းနံပါတ် ရိုက်ထည့်ပါ။";
+      return;
+    }
+    for (const p of list) await storePut(`/allowed_users/${phoneKey(p)}`, { phone: p });
+    document.getElementById("adminAddPhonesInput").value = "";
+    msgEl.className = "ok";
+    msgEl.textContent = `ဖုန်းနံပါတ် ${list.length} ခု ထည့်ပြီးပါပြီ။`;
+    await syncAllData(false);
+  }
+
+  async function editAllowedUserPhone(oldKey, oldPhone) {
+    const nextPhone = cleanPhone(prompt("ဖုန်းနံပါတ် အသစ် ရိုက်ထည့်ပါ:", oldPhone));
+    if (!nextPhone || nextPhone === oldPhone) return;
+    await storeDelete(`/allowed_users/${oldKey}`);
+    await storePut(`/allowed_users/${phoneKey(nextPhone)}`, { phone: nextPhone });
+    await syncAllData(false);
+  }
+
+  async function deleteAllowedUserPhone(key) {
+    await storeDelete(`/allowed_users/${key}`);
+    await syncAllData(false);
+  }
+
+  function renderAdminUsersList() {
+    const q = cleanPhone(document.getElementById("filterUserPhone")?.value || "");
+    const el = document.getElementById("adminUsersList");
+    const rows = q ? allowedUsersList.filter(u => u.phone.includes(q)) : allowedUsersList;
+    el.innerHTML = rows.length
+      ? rows.map(u => `
+          <div class="item-card">
+            <div class="row">
+              <div><b>${esc(u.phone)}</b></div>
+              <div style="text-align:right;">
+                <button class="btn-sm" onclick="editAllowedUserPhone('${u.key}', '${esc(u.phone)}')">ပြောင်းမည်</button>
+                <button class="btn-red btn-sm" onclick="deleteAllowedUserPhone('${u.key}')">ဖျက်မည်</button>
+              </div>
+            </div>
+          </div>
+        `).join("")
+      : "<p style='color:#64748b;'>ဖုန်းနံပါတ် မရှိပါ။</p>";
+  }
+
+  async function sendNoticeToUser() {
+    const targetPhone = cleanPhone(document.getElementById("noticeTargetPhone").value) || "ALL";
+    const text = (document.getElementById("noticeText").value || "").trim();
+    const msgEl = document.getElementById("noticeMsg");
+    if (!text) {
+      msgEl.className = "err";
+      msgEl.textContent = "အကြောင်းကြားစာ ရိုက်ထည့်ပါ။";
+      return;
+    }
+    await storePost("/notices", { targetPhone, text, createdAt: new Date().toLocaleString() });
+    playAlertSound("reply");
+    document.getElementById("noticeText").value = "";
+    msgEl.className = "ok";
+    msgEl.textContent = "အကြောင်းကြားစာ ပို့ပြီးပါပြီ။";
+    await syncAllData(false);
+  }
+
+  async function changeAdminPassword() {
+    const nextPass = (document.getElementById("newAdminPassInput").value || "").trim();
+    const msgEl = document.getElementById("passChangeMsg");
+    if (nextPass.length < 4) {
+      msgEl.className = "err";
+      msgEl.textContent = "Password အနည်းဆုံး ၄ လုံး ထည့်ပါ။";
+      return;
+    }
+    await storePatch("/settings", { adminPassword: nextPass });
+    adminPasswordVal = nextPass;
+    document.getElementById("newAdminPassInput").value = "";
+    msgEl.className = "ok";
+    msgEl.textContent = "Admin Password ပြောင်းပြီးပါပြီ။";
+  }
+
+  const savedSess = localStorage.getItem("mzh_topup_session");
+  if (savedSess) {
+    try {
+      currentSession = JSON.parse(savedSess);
+      if (currentSession?.phone) enterAppScreen();
+    } catch (e) {}
+  }
+</script>
+</body>
+</html>
