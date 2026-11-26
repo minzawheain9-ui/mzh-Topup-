@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="my">
-<head>
+<head><link rel="manifest" href="manifest.json">
+
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Ko Min Zaw Heim - Topup System</title>
@@ -391,8 +392,8 @@
 </div>
 
 <script>
-  // ကိုယ့် Firebase URL ရှိရင် ထည့်ပါ၊ မထည့်သေးရင် Local Mode နဲ့ အလိုအလျောက် အလုပ်လုပ်ပါမယ်
-  const DB_URL = ""; // ဥပမာ: "https://your-app-default-rtdb.firebaseio.com"
+  // Newline ပါနေတာကို .trim() နဲ့ ရှင်းထားပါတယ်
+  const DB_URL = "https://mzh-topup-default-rtdb.firebaseio.com".trim();
 
   const ADMIN_DEFAULT_PHONE = "09750050068";
   const ADMIN_DEFAULT_NAME = "Ko Min Zaw Heim";
@@ -418,7 +419,6 @@
   ];
 
   const DEFAULT_CATALOG = {
-    // ATOM Data / Plan / Voice
     data_1gb:    { id: "data_1gb",    tab: "atom",  subType: "data",  gb: 1,  category: "Atom Data",  name: "Atom Data 1GB",       price: 950,   open: true },
     data_2gb:    { id: "data_2gb",    tab: "atom",  subType: "data",  gb: 2,  category: "Atom Data",  name: "Atom Data 2GB",       price: 1900,  open: true },
     data_3gb:    { id: "data_3gb",    tab: "atom",  subType: "data",  gb: 3,  category: "Atom Data",  name: "Atom Data 3GB",       price: 2850,  open: true },
@@ -429,31 +429,39 @@
     voice_150a:  { id: "voice_150a",  tab: "atom",  subType: "voice", gb: 0,  category: "Atom Voice", name: "Atom to Atom 150min", price: 2000,  open: true },
     voice_150n:  { id: "voice_150n",  tab: "atom",  subType: "voice", gb: 0,  category: "Atom Voice", name: "Atom Any 150min",     price: 1700,  open: true },
 
-    // Mytel Data Plans
     mytel_1gb:   { id: "mytel_1gb",   tab: "mytel", subType: "data",  gb: 1,  category: "Mytel Data", name: "Mytel Data 1GB",      price: 950,   open: true },
     mytel_3gb:   { id: "mytel_3gb",   tab: "mytel", subType: "data",  gb: 3,  category: "Mytel Data", name: "Mytel Data 3GB",      price: 2850,  open: true },
     mytel_5gb:   { id: "mytel_5gb",   tab: "mytel", subType: "data",  gb: 5,  category: "Mytel Data", name: "Mytel Data 5GB",      price: 4750,  open: true },
     mytel_10gb:  { id: "mytel_10gb",  tab: "mytel", subType: "data",  gb: 10, category: "Mytel Data", name: "Mytel Data 10GB",     price: 9500,  open: true },
 
-    // U9 Data Plans
     u9_1gb:      { id: "u9_1gb",      tab: "u9",    subType: "data",  gb: 1,  category: "U9 Data",    name: "U9 Data 1GB",         price: 950,   open: true },
     u9_3gb:      { id: "u9_3gb",      tab: "u9",    subType: "data",  gb: 3,  category: "U9 Data",    name: "U9 Data 3GB",         price: 2850,  open: true },
     u9_5gb:      { id: "u9_5gb",      tab: "u9",    subType: "data",  gb: 5,  category: "U9 Data",    name: "U9 Data 5GB",         price: 4750,  open: true },
     u9_10gb:     { id: "u9_10gb",     tab: "u9",    subType: "data",  gb: 10, category: "U9 Data",    name: "U9 Data 10GB",        price: 9500,  open: true },
 
-    // MPT Data Plans
     mpt_1gb:     { id: "mpt_1gb",     tab: "mpt",   subType: "data",  gb: 1,  category: "MPT Data",   name: "MPT Data 1GB",        price: 950,   open: true },
     mpt_3gb:     { id: "mpt_3gb",     tab: "mpt",   subType: "data",  gb: 3,  category: "MPT Data",   name: "MPT Data 3GB",        price: 2850,  open: true },
     mpt_5gb:     { id: "mpt_5gb",     tab: "mpt",   subType: "data",  gb: 5,  category: "MPT Data",   name: "MPT Data 5GB",        price: 4750,  open: true },
     mpt_10gb:    { id: "mpt_10gb",    tab: "mpt",   subType: "data",  gb: 10, category: "MPT Data",   name: "MPT Data 10GB",       price: 9500,  open: true },
 
-    // Extra
     extra_vpn:   { id: "extra_vpn",   tab: "extra", subType: "extra", gb: 0,  category: "Extra",      name: "Outline VPN Key (30d)", price: 3000, open: true }
   };
 
   function hasValidFirebaseUrl() {
     const u = (DB_URL || "").trim();
     return u.startsWith("https://") && !u.includes("YOUR_DATABASE_URL");
+  }
+
+  // Timeout ပါတဲ့ fetch helper (ရပ်မနေစေရန်)
+  async function fetchWithTimeout(url, options = {}, timeoutMs = 7000) {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(url, { ...options, signal: controller.signal });
+      return res;
+    } finally {
+      clearTimeout(id);
+    }
   }
 
   function localLoadState() {
@@ -492,10 +500,15 @@
     return st;
   }
 
+  function cleanPath(path) {
+    return "/" + String(path || "").replace(/^\/+|\/+$/g, "");
+  }
+
   async function storeGet(path) {
+    const p = cleanPath(path);
     if (!hasValidFirebaseUrl()) {
       const st = ensureLocalSeed();
-      const parts = path.replace(/^\/+/, "").split("/");
+      const parts = p.replace(/^\/+/, "").split("/");
       let cur = st;
       for (const part of parts) {
         if (!part) continue;
@@ -503,15 +516,17 @@
       }
       return cur ?? null;
     }
-    const r = await fetch(`${DB_URL.replace(/\/+$/, "")}${path}.json`);
-    if (!r.ok) throw new Error("Firebase read failed");
+    const base = DB_URL.trim().replace(/\/+$/, "");
+    const r = await fetchWithTimeout(`${base}${p}.json`);
+    if (!r.ok) throw new Error("Firebase read failed (" + r.status + ")");
     return await r.json();
   }
 
   async function storePut(path, data) {
+    const p = cleanPath(path);
     if (!hasValidFirebaseUrl()) {
       const st = ensureLocalSeed();
-      const parts = path.replace(/^\/+/, "").split("/").filter(Boolean);
+      const parts = p.replace(/^\/+/, "").split("/").filter(Boolean);
       let cur = st;
       for (let i = 0; i < parts.length - 1; i++) {
         if (!cur[parts[i]]) cur[parts[i]] = {};
@@ -521,20 +536,22 @@
       localSaveState(st);
       return data;
     }
-    const r = await fetch(`${DB_URL.replace(/\/+$/, "")}${path}.json`, {
+    const base = DB_URL.trim().replace(/\/+$/, "");
+    const r = await fetchWithTimeout(`${base}${p}.json`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data)
     });
-    if (!r.ok) throw new Error("Firebase write failed");
+    if (!r.ok) throw new Error("Firebase write failed (" + r.status + ")");
     return await r.json();
   }
 
   async function storePost(path, data) {
+    const p = cleanPath(path);
     const id = "k_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
     if (!hasValidFirebaseUrl()) {
       const st = ensureLocalSeed();
-      const parts = path.replace(/^\/+/, "").split("/").filter(Boolean);
+      const parts = p.replace(/^\/+/, "").split("/").filter(Boolean);
       let cur = st;
       for (const part of parts) {
         if (!cur[part]) cur[part] = {};
@@ -544,34 +561,38 @@
       localSaveState(st);
       return { name: id };
     }
-    const r = await fetch(`${DB_URL.replace(/\/+$/, "")}${path}.json`, {
+    const base = DB_URL.trim().replace(/\/+$/, "");
+    const r = await fetchWithTimeout(`${base}${p}.json`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data)
     });
-    if (!r.ok) throw new Error("Firebase post failed");
+    if (!r.ok) throw new Error("Firebase post failed (" + r.status + ")");
     return await r.json();
   }
 
   async function storePatch(path, data) {
+    const p = cleanPath(path);
     if (!hasValidFirebaseUrl()) {
-      const existing = (await storeGet(path)) || {};
-      await storePut(path, { ...existing, ...data });
+      const existing = (await storeGet(p)) || {};
+      await storePut(p, { ...existing, ...data });
       return data;
     }
-    const r = await fetch(`${DB_URL.replace(/\/+$/, "")}${path}.json`, {
+    const base = DB_URL.trim().replace(/\/+$/, "");
+    const r = await fetchWithTimeout(`${base}${p}.json`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data)
     });
-    if (!r.ok) throw new Error("Firebase patch failed");
+    if (!r.ok) throw new Error("Firebase patch failed (" + r.status + ")");
     return await r.json();
   }
 
   async function storeDelete(path) {
+    const p = cleanPath(path);
     if (!hasValidFirebaseUrl()) {
       const st = ensureLocalSeed();
-      const parts = path.replace(/^\/+/, "").split("/").filter(Boolean);
+      const parts = p.replace(/^\/+/, "").split("/").filter(Boolean);
       let cur = st;
       for (let i = 0; i < parts.length - 1; i++) {
         if (!cur[parts[i]]) return;
@@ -581,8 +602,9 @@
       localSaveState(st);
       return;
     }
-    const r = await fetch(`${DB_URL.replace(/\/+$/, "")}${path}.json`, { method: "DELETE" });
-    if (!r.ok) throw new Error("Firebase delete failed");
+    const base = DB_URL.trim().replace(/\/+$/, "");
+    const r = await fetchWithTimeout(`${base}${p}.json`, { method: "DELETE" });
+    if (!r.ok) throw new Error("Firebase delete failed (" + r.status + ")");
   }
 
   let currentSession = null;
@@ -608,8 +630,13 @@
     return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   }
 
-  function updateModeBadge() {
+  function updateModeBadge(statusText = "") {
     const b = document.getElementById("modeBadge");
+    if (statusText) {
+      b.textContent = statusText;
+      b.className = "badge";
+      return;
+    }
     if (hasValidFirebaseUrl()) {
       b.textContent = "Mode: Firebase Cloud (တခြားဖုန်းများနှင့် ချိတ်ဆက်နိုင်)";
       b.className = "badge open";
@@ -660,13 +687,18 @@
 
   async function requestTempOtp() {
     const msgEl = document.getElementById("loginMsg");
+    const btn = document.getElementById("sendOtpBtn");
     msgEl.className = "";
     msgEl.textContent = "စစ်ဆေးနေပါသည်...";
+    updateModeBadge("Firebase ချိတ်ဆက်မှု စစ်ဆေးနေသည်...");
+    if (btn) btn.disabled = true;
 
     const phone = cleanPhone(document.getElementById("loginPhone").value);
     if (!phone) {
       msgEl.className = "err";
       msgEl.textContent = "ဖုန်းနံပါတ် ရိုက်ထည့်ပါ။";
+      updateModeBadge();
+      if (btn) btn.disabled = false;
       return;
     }
 
@@ -680,18 +712,24 @@
         if (passInput !== adminPasswordVal) {
           msgEl.className = "err";
           msgEl.textContent = "Admin Password မှားယွင်းနေပါသည်။ (Default: mzh616263)";
+          updateModeBadge();
+          if (btn) btn.disabled = false;
           return;
         }
       } else {
         const usersRaw = (await storeGet("/allowed_users")) || {};
         const allowed = Object.values(usersRaw).map(u => cleanPhone(u.phone || u));
-        if (!allowed.includes(phone)) {
+        const fallbackAllowed = INITIAL_USER_PHONES.map(cleanPhone);
+        if (!allowed.includes(phone) && !fallbackAllowed.includes(phone)) {
           msgEl.className = "err";
           msgEl.textContent = "ဤဖုန်းနံပါတ်သည် Admin ခွင့်ပြုထားသော စာရင်းထဲ မပါဝင်ပါ။";
+          updateModeBadge();
+          if (btn) btn.disabled = false;
           return;
         }
       }
 
+      updateModeBadge();
       generatedOtp = String(Math.floor(100000 + Math.random() * 900000));
       document.getElementById("tempOtpDisplay").textContent = `ယာယီ OTP Code: ${generatedOtp}`;
       document.getElementById("otpInput").value = generatedOtp;
@@ -702,8 +740,11 @@
       msgEl.className = "ok";
       msgEl.textContent = "ယာယီ OTP Code ထုတ်ပေးပြီးပါပြီ။ အမည်ထည့်ပြီး ဝင်ရောက်နိုင်ပါသည်။";
     } catch (err) {
+      updateModeBadge("Mode: Network / VPN ချိတ်ဆက်မှု နှေးနေသည်");
       msgEl.className = "err";
-      msgEl.textContent = "Firebase URL မှားယွင်းနေပါသည်။ DB_URL ကို စစ်ဆေးပါ။";
+      msgEl.textContent = "Firebase သို့ ချိတ်ဆက်ရာတွင် ကြာနေသည် သို့မဟုတ် အမှားဖြစ်နေသည်: " + (err?.message || "");
+    } finally {
+      if (btn) btn.disabled = false;
     }
   }
 
@@ -763,6 +804,7 @@
     document.getElementById("userScreen").classList.add("hidden");
     document.getElementById("loginCard").classList.remove("hidden");
     document.getElementById("otpSection").classList.add("hidden");
+    updateModeBadge();
   }
 
   let activeUserTab = "atom";
@@ -1176,7 +1218,6 @@
       mptGbRate: pVal
     });
 
-    // GB သတ်မှတ်ထားသော Data Package များ၏ ဈေးနှုန်းကို အလိုအလျောက် တွက်ချက်သိမ်းဆည်းခြင်း
     for (const [id, item] of Object.entries(catalogMap)) {
       const gb = Number(item.gb || 0);
       if (gb > 0) {
