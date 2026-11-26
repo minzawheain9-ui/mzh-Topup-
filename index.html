@@ -392,9 +392,8 @@
 </div>
 
 <script>
-  // ကိုယ့် Firebase URL ရှိရင် ထည့်ပါ၊ မထည့်သေးရင် Local Mode နဲ့ အလိုအလျောက် အလုပ်လုပ်ပါမယ်
-  const DB_URL = "https://mzh-topup-default-rtdb.firebaseio.com
-"; // ဥပမာ: "https://your-app-default-rtdb.firebaseio.com"
+  // Newline ပါနေတာကို .trim() နဲ့ ရှင်းထားပါတယ်
+  const DB_URL = "https://mzh-topup-default-rtdb.firebaseio.com".trim();
 
   const ADMIN_DEFAULT_PHONE = "09750050068";
   const ADMIN_DEFAULT_NAME = "Ko Min Zaw Heim";
@@ -420,7 +419,6 @@
   ];
 
   const DEFAULT_CATALOG = {
-    // ATOM Data / Plan / Voice
     data_1gb:    { id: "data_1gb",    tab: "atom",  subType: "data",  gb: 1,  category: "Atom Data",  name: "Atom Data 1GB",       price: 950,   open: true },
     data_2gb:    { id: "data_2gb",    tab: "atom",  subType: "data",  gb: 2,  category: "Atom Data",  name: "Atom Data 2GB",       price: 1900,  open: true },
     data_3gb:    { id: "data_3gb",    tab: "atom",  subType: "data",  gb: 3,  category: "Atom Data",  name: "Atom Data 3GB",       price: 2850,  open: true },
@@ -431,31 +429,39 @@
     voice_150a:  { id: "voice_150a",  tab: "atom",  subType: "voice", gb: 0,  category: "Atom Voice", name: "Atom to Atom 150min", price: 2000,  open: true },
     voice_150n:  { id: "voice_150n",  tab: "atom",  subType: "voice", gb: 0,  category: "Atom Voice", name: "Atom Any 150min",     price: 1700,  open: true },
 
-    // Mytel Data Plans
     mytel_1gb:   { id: "mytel_1gb",   tab: "mytel", subType: "data",  gb: 1,  category: "Mytel Data", name: "Mytel Data 1GB",      price: 950,   open: true },
     mytel_3gb:   { id: "mytel_3gb",   tab: "mytel", subType: "data",  gb: 3,  category: "Mytel Data", name: "Mytel Data 3GB",      price: 2850,  open: true },
     mytel_5gb:   { id: "mytel_5gb",   tab: "mytel", subType: "data",  gb: 5,  category: "Mytel Data", name: "Mytel Data 5GB",      price: 4750,  open: true },
     mytel_10gb:  { id: "mytel_10gb",  tab: "mytel", subType: "data",  gb: 10, category: "Mytel Data", name: "Mytel Data 10GB",     price: 9500,  open: true },
 
-    // U9 Data Plans
     u9_1gb:      { id: "u9_1gb",      tab: "u9",    subType: "data",  gb: 1,  category: "U9 Data",    name: "U9 Data 1GB",         price: 950,   open: true },
     u9_3gb:      { id: "u9_3gb",      tab: "u9",    subType: "data",  gb: 3,  category: "U9 Data",    name: "U9 Data 3GB",         price: 2850,  open: true },
     u9_5gb:      { id: "u9_5gb",      tab: "u9",    subType: "data",  gb: 5,  category: "U9 Data",    name: "U9 Data 5GB",         price: 4750,  open: true },
     u9_10gb:     { id: "u9_10gb",     tab: "u9",    subType: "data",  gb: 10, category: "U9 Data",    name: "U9 Data 10GB",        price: 9500,  open: true },
 
-    // MPT Data Plans
     mpt_1gb:     { id: "mpt_1gb",     tab: "mpt",   subType: "data",  gb: 1,  category: "MPT Data",   name: "MPT Data 1GB",        price: 950,   open: true },
     mpt_3gb:     { id: "mpt_3gb",     tab: "mpt",   subType: "data",  gb: 3,  category: "MPT Data",   name: "MPT Data 3GB",        price: 2850,  open: true },
     mpt_5gb:     { id: "mpt_5gb",     tab: "mpt",   subType: "data",  gb: 5,  category: "MPT Data",   name: "MPT Data 5GB",        price: 4750,  open: true },
     mpt_10gb:    { id: "mpt_10gb",    tab: "mpt",   subType: "data",  gb: 10, category: "MPT Data",   name: "MPT Data 10GB",       price: 9500,  open: true },
 
-    // Extra
     extra_vpn:   { id: "extra_vpn",   tab: "extra", subType: "extra", gb: 0,  category: "Extra",      name: "Outline VPN Key (30d)", price: 3000, open: true }
   };
 
   function hasValidFirebaseUrl() {
     const u = (DB_URL || "").trim();
     return u.startsWith("https://") && !u.includes("YOUR_DATABASE_URL");
+  }
+
+  // Timeout ပါတဲ့ fetch helper (ရပ်မနေစေရန်)
+  async function fetchWithTimeout(url, options = {}, timeoutMs = 7000) {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(url, { ...options, signal: controller.signal });
+      return res;
+    } finally {
+      clearTimeout(id);
+    }
   }
 
   function localLoadState() {
@@ -494,10 +500,15 @@
     return st;
   }
 
+  function cleanPath(path) {
+    return "/" + String(path || "").replace(/^\/+|\/+$/g, "");
+  }
+
   async function storeGet(path) {
+    const p = cleanPath(path);
     if (!hasValidFirebaseUrl()) {
       const st = ensureLocalSeed();
-      const parts = path.replace(/^\/+/, "").split("/");
+      const parts = p.replace(/^\/+/, "").split("/");
       let cur = st;
       for (const part of parts) {
         if (!part) continue;
@@ -505,15 +516,17 @@
       }
       return cur ?? null;
     }
-    const r = await fetch(`${DB_URL.replace(/\/+$/, "")}${path}.json`);
-    if (!r.ok) throw new Error("Firebase read failed");
+    const base = DB_URL.trim().replace(/\/+$/, "");
+    const r = await fetchWithTimeout(`${base}${p}.json`);
+    if (!r.ok) throw new Error("Firebase read failed (" + r.status + ")");
     return await r.json();
   }
 
   async function storePut(path, data) {
+    const p = cleanPath(path);
     if (!hasValidFirebaseUrl()) {
       const st = ensureLocalSeed();
-      const parts = path.replace(/^\/+/, "").split("/").filter(Boolean);
+      const parts = p.replace(/^\/+/, "").split("/").filter(Boolean);
       let cur = st;
       for (let i = 0; i < parts.length - 1; i++) {
         if (!cur[parts[i]]) cur[parts[i]] = {};
@@ -523,20 +536,22 @@
       localSaveState(st);
       return data;
     }
-    const r = await fetch(`${DB_URL.replace(/\/+$/, "")}${path}.json`, {
+    const base = DB_URL.trim().replace(/\/+$/, "");
+    const r = await fetchWithTimeout(`${base}${p}.json`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data)
     });
-    if (!r.ok) throw new Error("Firebase write failed");
+    if (!r.ok) throw new Error("Firebase write failed (" + r.status + ")");
     return await r.json();
   }
 
   async function storePost(path, data) {
+    const p = cleanPath(path);
     const id = "k_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
     if (!hasValidFirebaseUrl()) {
       const st = ensureLocalSeed();
-      const parts = path.replace(/^\/+/, "").split("/").filter(Boolean);
+      const parts = p.replace(/^\/+/, "").split("/").filter(Boolean);
       let cur = st;
       for (const part of parts) {
         if (!cur[part]) cur[part] = {};
@@ -546,34 +561,38 @@
       localSaveState(st);
       return { name: id };
     }
-    const r = await fetch(`${DB_URL.replace(/\/+$/, "")}${path}.json`, {
+    const base = DB_URL.trim().replace(/\/+$/, "");
+    const r = await fetchWithTimeout(`${base}${p}.json`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data)
     });
-    if (!r.ok) throw new Error("Firebase post failed");
+    if (!r.ok) throw new Error("Firebase post failed (" + r.status + ")");
     return await r.json();
   }
 
   async function storePatch(path, data) {
+    const p = cleanPath(path);
     if (!hasValidFirebaseUrl()) {
-      const existing = (await storeGet(path)) || {};
-      await storePut(path, { ...existing, ...data });
+      const existing = (await storeGet(p)) || {};
+      await storePut(p, { ...existing, ...data });
       return data;
     }
-    const r = await fetch(`${DB_URL.replace(/\/+$/, "")}${path}.json`, {
+    const base = DB_URL.trim().replace(/\/+$/, "");
+    const r = await fetchWithTimeout(`${base}${p}.json`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data)
     });
-    if (!r.ok) throw new Error("Firebase patch failed");
+    if (!r.ok) throw new Error("Firebase patch failed (" + r.status + ")");
     return await r.json();
   }
 
   async function storeDelete(path) {
+    const p = cleanPath(path);
     if (!hasValidFirebaseUrl()) {
       const st = ensureLocalSeed();
-      const parts = path.replace(/^\/+/, "").split("/").filter(Boolean);
+      const parts = p.replace(/^\/+/, "").split("/").filter(Boolean);
       let cur = st;
       for (let i = 0; i < parts.length - 1; i++) {
         if (!cur[parts[i]]) return;
@@ -583,8 +602,9 @@
       localSaveState(st);
       return;
     }
-    const r = await fetch(`${DB_URL.replace(/\/+$/, "")}${path}.json`, { method: "DELETE" });
-    if (!r.ok) throw new Error("Firebase delete failed");
+    const base = DB_URL.trim().replace(/\/+$/, "");
+    const r = await fetchWithTimeout(`${base}${p}.json`, { method: "DELETE" });
+    if (!r.ok) throw new Error("Firebase delete failed (" + r.status + ")");
   }
 
   let currentSession = null;
@@ -610,8 +630,13 @@
     return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   }
 
-  function updateModeBadge() {
+  function updateModeBadge(statusText = "") {
     const b = document.getElementById("modeBadge");
+    if (statusText) {
+      b.textContent = statusText;
+      b.className = "badge";
+      return;
+    }
     if (hasValidFirebaseUrl()) {
       b.textContent = "Mode: Firebase Cloud (တခြားဖုန်းများနှင့် ချိတ်ဆက်နိုင်)";
       b.className = "badge open";
@@ -662,13 +687,18 @@
 
   async function requestTempOtp() {
     const msgEl = document.getElementById("loginMsg");
+    const btn = document.getElementById("sendOtpBtn");
     msgEl.className = "";
     msgEl.textContent = "စစ်ဆေးနေပါသည်...";
+    updateModeBadge("Firebase ချိတ်ဆက်မှု စစ်ဆေးနေသည်...");
+    if (btn) btn.disabled = true;
 
     const phone = cleanPhone(document.getElementById("loginPhone").value);
     if (!phone) {
       msgEl.className = "err";
       msgEl.textContent = "ဖုန်းနံပါတ် ရိုက်ထည့်ပါ။";
+      updateModeBadge();
+      if (btn) btn.disabled = false;
       return;
     }
 
@@ -682,18 +712,24 @@
         if (passInput !== adminPasswordVal) {
           msgEl.className = "err";
           msgEl.textContent = "Admin Password မှားယွင်းနေပါသည်။ (Default: mzh616263)";
+          updateModeBadge();
+          if (btn) btn.disabled = false;
           return;
         }
       } else {
         const usersRaw = (await storeGet("/allowed_users")) || {};
         const allowed = Object.values(usersRaw).map(u => cleanPhone(u.phone || u));
-        if (!allowed.includes(phone)) {
+        const fallbackAllowed = INITIAL_USER_PHONES.map(cleanPhone);
+        if (!allowed.includes(phone) && !fallbackAllowed.includes(phone)) {
           msgEl.className = "err";
           msgEl.textContent = "ဤဖုန်းနံပါတ်သည် Admin ခွင့်ပြုထားသော စာရင်းထဲ မပါဝင်ပါ။";
+          updateModeBadge();
+          if (btn) btn.disabled = false;
           return;
         }
       }
 
+      updateModeBadge();
       generatedOtp = String(Math.floor(100000 + Math.random() * 900000));
       document.getElementById("tempOtpDisplay").textContent = `ယာယီ OTP Code: ${generatedOtp}`;
       document.getElementById("otpInput").value = generatedOtp;
@@ -704,8 +740,11 @@
       msgEl.className = "ok";
       msgEl.textContent = "ယာယီ OTP Code ထုတ်ပေးပြီးပါပြီ။ အမည်ထည့်ပြီး ဝင်ရောက်နိုင်ပါသည်။";
     } catch (err) {
+      updateModeBadge("Mode: Network / VPN ချိတ်ဆက်မှု နှေးနေသည်");
       msgEl.className = "err";
-      msgEl.textContent = "Firebase URL မှားယွင်းနေပါသည်။ DB_URL ကို စစ်ဆေးပါ။";
+      msgEl.textContent = "Firebase သို့ ချိတ်ဆက်ရာတွင် ကြာနေသည် သို့မဟုတ် အမှားဖြစ်နေသည်: " + (err?.message || "");
+    } finally {
+      if (btn) btn.disabled = false;
     }
   }
 
@@ -765,6 +804,7 @@
     document.getElementById("userScreen").classList.add("hidden");
     document.getElementById("loginCard").classList.remove("hidden");
     document.getElementById("otpSection").classList.add("hidden");
+    updateModeBadge();
   }
 
   let activeUserTab = "atom";
@@ -1026,337 +1066,4 @@
         }
       } else {
         const myOrders = ordersGlobal.filter(o => o.senderPhone === currentSession.phone);
-        const myRepliesCount = myOrders.filter(o => o.adminReply || o.completeSlip).length;
-        const myNoticesCount = noticesGlobal.filter(n => n.targetPhone === "ALL" || n.targetPhone === currentSession.phone).length;
-        const totalIncoming = myRepliesCount + myNoticesCount;
-        if (!isInitial && lastKnownNoticeCount >= 0 && totalIncoming > lastKnownNoticeCount) {
-          playAlertSound("reply");
-        }
-        lastKnownNoticeCount = totalIncoming;
-        renderUserView();
-      }
-    } catch (e) {}
-  }
-
-  function renderUserView() {
-    document.getElementById("globalOrderNotice").textContent = ordersOpenFlag ? "" : "Admin မှ လက်ရှိ Order လက်ခံမှု ခေတ္တပိတ်ထားပါသည်။";
-    populateCatalogSelects();
-
-    const container = document.getElementById("userOrdersAndReplies");
-    const myOrders = ordersGlobal.filter(o => o.senderPhone === currentSession.phone);
-    const myNotices = noticesGlobal.filter(n => n.targetPhone === "ALL" || n.targetPhone === currentSession.phone);
-
-    let html = "";
-    for (const n of myNotices) {
-      html += `
-        <div class="item-card" style="background:#eff6ff;">
-          <span class="badge">Admin အကြောင်းကြားစာ</span>
-          <div style="font-size:12px;color:#475569;margin-top:4px;">${esc(n.createdAt)}</div>
-          <div style="margin-top:4px;"><b>${esc(n.text)}</b></div>
-        </div>
-      `;
-    }
-    for (const o of myOrders) {
-      html += `
-        <div class="item-card">
-          <div class="row">
-            <div><b>${esc(o.itemName)}</b> ${o.targetPhone ? `(${esc(o.targetPhone)})` : ""}</div>
-            <div style="text-align:right;"><span class="badge">${esc(o.status || "Pending")}</span></div>
-          </div>
-          <div style="font-size:12px;color:#475569;">${esc(o.createdAt)} ${o.priceKs ? `| ${Number(o.priceKs).toLocaleString()}ks` : ""}</div>
-          ${o.message ? `<div style="margin-top:4px;">စာ: ${esc(o.message)}</div>` : ""}
-          ${o.adminReply ? `<div class="ok">Admin ပြန်စာ: ${esc(o.adminReply)}</div>` : ""}
-          ${o.completeSlip ? `<div><div class="ok">ပြီးကြောင်း Screenshot:</div><img src="${o.completeSlip}" class="slip-preview" /></div>` : ""}
-        </div>
-      `;
-    }
-    container.innerHTML = html || "<p style='color:#64748b;'>မှတ်တမ်း မရှိသေးပါ။</p>";
-  }
-
-  const tempCompleteSlips = {};
-  function attachCompleteSlip(orderId, ev) {
-    const file = ev.target.files?.[0];
-    if (!file) return;
-    const r = new FileReader();
-    r.onload = () => { tempCompleteSlips[orderId] = r.result; };
-    r.readAsDataURL(file);
-  }
-
-  function renderAdminView() {
-    const btn = document.getElementById("globalOrderToggleBtn");
-    btn.textContent = ordersOpenFlag ? "Order လက်ခံမှု ခေတ္တပိတ်မည် (ဖွင့်ထားသည်)" : "Order လက်ခံမှု ပြန်ဖွင့်မည် (ပိတ်ထားသည်)";
-    btn.className = ordersOpenFlag ? "btn-red" : "btn-green";
-
-    const rateInp = document.getElementById("billRateInput");
-    if (rateInp) rateInp.value = billRatePer1000;
-    const mInp = document.getElementById("mytelGbRateInput");
-    if (mInp) mInp.value = mytelGbRate;
-    const uInp = document.getElementById("u9GbRateInput");
-    if (uInp) uInp.value = u9GbRate;
-    const pInp = document.getElementById("mptGbRateInput");
-    if (pInp) pInp.value = mptGbRate;
-
-    const inboxEl = document.getElementById("adminInboxList");
-    inboxEl.innerHTML = ordersGlobal.length
-      ? ordersGlobal.slice(0, 30).map(o => `
-          <div class="item-card">
-            <div class="row">
-              <div>
-                <span class="badge">${esc(o.type === "error_report" ? "Error Report" : "Order")}</span>
-                <b>${esc(o.senderName || "")}</b> (${esc(o.senderPhone)})
-              </div>
-              <div style="text-align:right;"><span class="badge">${esc(o.status || "Pending")}</span></div>
-            </div>
-            <div style="font-size:12px;color:#475569;margin-top:4px;">${esc(o.createdAt)}</div>
-            <div style="margin-top:6px;">
-              <b>Package/အကြောင်းအရာ:</b> ${esc(o.itemName)}
-              ${o.targetPhone ? `<br/><b>ငွေဖြည့်မည့် နံပါတ်:</b> ${esc(o.targetPhone)}` : ""}
-              ${o.priceKs ? `<br/><b>ကျသင့်ငွေ:</b> ${Number(o.priceKs).toLocaleString()}ks (${esc(o.payMethod || "")})` : ""}
-              ${o.message ? `<br/><b>စာသား:</b> ${esc(o.message)}` : ""}
-            </div>
-            ${o.slipData ? `<div><div style="font-size:12px;margin-top:6px;"><b>ဝယ်သူပို့သော Slip:</b></div><img src="${o.slipData}" class="slip-preview" /></div>` : ""}
-            <label>Admin ပြန်စာ / အကြောင်းကြားစာ</label>
-            <input type="text" id="replyText_${o.id}" value="${esc(o.adminReply || "")}" placeholder="ပြီးပါပြီ / လုပ်ဆောင်နေပါသည်..." />
-            <label>ပြီးကြောင်း SS ထည့်ရန်</label>
-            <input type="file" accept="image/*" onchange="attachCompleteSlip('${o.id}', event)" />
-            <div class="row" style="margin-top:8px;">
-              <button class="btn-green btn-sm" onclick="adminSaveOrderResponse('${o.id}', 'Completed')">ပြီးကြောင်း ပို့မည်</button>
-              <button class="btn-sm" onclick="adminSaveOrderResponse('${o.id}', 'Replied')">စာပြန်ပို့မည်</button>
-              <button class="btn-red btn-sm" onclick="adminDeleteOrder('${o.id}')">ဖျက်မည်</button>
-            </div>
-          </div>
-        `).join("")
-      : "<p style='color:#64748b;'>ရောက်လာသော Order / စာ မရှိသေးပါ။</p>";
-
-    const catEl = document.getElementById("adminCatalogList");
-    catEl.innerHTML = Object.values(catalogMap).map(item => `
-      <div class="item-card">
-        <div class="row">
-          <div>
-            <b>${esc(item.name)}</b> <span style="font-size:12px;color:#64748b;">(${esc(item.category)}${item.gb ? ` | ${item.gb}GB` : ""})</span>
-            <span class="badge ${item.open ? "open" : "closed"}">${item.open ? "ဖွင့်ထားသည်" : "ပိတ်ထားသည်"}</span>
-            <div style="font-size:12px;color:#334155;margin-top:2px;">လက်ရှိဈေးနှုန်း: <b>${Number(item.price || 0).toLocaleString()} ks</b></div>
-          </div>
-          <div style="text-align:right;">
-            <button class="btn-sm ${item.open ? "btn-red" : "btn-green"}" onclick="toggleCatalogOpen('${item.id}', ${!item.open})">
-              ${item.open ? "ပိတ်မည်" : "ဖွင့်မည်"}
-            </button>
-          </div>
-        </div>
-        <div class="row" style="margin-top:6px;">
-          <input type="number" id="priceInput_${item.id}" min="1" value="${Number(item.price || 0)}" placeholder="ဈေးနှုန်းအသစ် (ks)" />
-          <button class="btn-sm" onclick="saveCatalogPrice('${item.id}')">ဈေးနှုန်း သိမ်းမည်</button>
-        </div>
-      </div>
-    `).join("");
-
-    renderAdminUsersList();
-  }
-
-  async function saveBaseRates() {
-    const bVal = Number(document.getElementById("billRateInput")?.value || 0);
-    const mVal = Number(document.getElementById("mytelGbRateInput")?.value || 0);
-    const uVal = Number(document.getElementById("u9GbRateInput")?.value || 0);
-    const pVal = Number(document.getElementById("mptGbRateInput")?.value || 0);
-    const msgEl = document.getElementById("billRateMsg");
-
-    if (bVal <= 0 || mVal <= 0 || uVal <= 0 || pVal <= 0) {
-      msgEl.className = "err";
-      msgEl.textContent = "နှုန်းထားအားလုံးသည် 0 ထက်ကြီးသော ဂဏန်းများ ဖြစ်ရပါမည်။";
-      return;
-    }
-
-    billRatePer1000 = bVal;
-    mytelGbRate = mVal;
-    u9GbRate = uVal;
-    mptGbRate = pVal;
-
-    await storePatch("/settings", {
-      billRatePer1000: bVal,
-      mytelGbRate: mVal,
-      u9GbRate: uVal,
-      mptGbRate: pVal
-    });
-
-    // GB သတ်မှတ်ထားသော Data Package များ၏ ဈေးနှုန်းကို အလိုအလျောက် တွက်ချက်သိမ်းဆည်းခြင်း
-    for (const [id, item] of Object.entries(catalogMap)) {
-      const gb = Number(item.gb || 0);
-      if (gb > 0) {
-        let newPrice = null;
-        if (item.tab === "mytel") newPrice = Math.round(gb * mVal);
-        else if (item.tab === "u9") newPrice = Math.round(gb * uVal);
-        else if (item.tab === "mpt") newPrice = Math.round(gb * pVal);
-        if (newPrice !== null) {
-          catalogMap[id].price = newPrice;
-          await storePatch(`/catalog/${id}`, { price: newPrice });
-        }
-      }
-    }
-
-    msgEl.className = "ok";
-    msgEl.textContent = `နှုန်းထားများ သိမ်းပြီးပါပြီ (Bill 1k=${bVal}ks | Mytel 1GB=${mVal}ks | U9 1GB=${uVal}ks | MPT 1GB=${pVal}ks)။`;
-    await syncAllData(false);
-  }
-
-  async function adminSaveOrderResponse(orderId, statusLabel) {
-    const replyVal = (document.getElementById(`replyText_${orderId}`)?.value || "").trim();
-    const patchObj = { status: statusLabel, adminReply: replyVal };
-    if (tempCompleteSlips[orderId]) patchObj.completeSlip = tempCompleteSlips[orderId];
-    await storePatch(`/orders/${orderId}`, patchObj);
-    await syncAllData(false);
-  }
-
-  async function adminDeleteOrder(orderId) {
-    await storeDelete(`/orders/${orderId}`);
-    await syncAllData(false);
-  }
-
-  async function toggleGlobalOrders() {
-    ordersOpenFlag = !ordersOpenFlag;
-    await storePatch("/settings", { ordersOpen: ordersOpenFlag });
-    document.getElementById("adminGlobalStatus").textContent = ordersOpenFlag ? "Order လက်ခံမှု ဖွင့်ထားပါပြီ။" : "Order လက်ခံမှု ပိတ်ထားပါပြီ။";
-    await syncAllData(false);
-  }
-
-  async function saveCatalogPrice(id) {
-    const inp = document.getElementById(`priceInput_${id}`);
-    const statusEl = document.getElementById("priceSaveStatus");
-    const val = Number(inp?.value);
-    if (!Number.isFinite(val) || val <= 0) {
-      statusEl.className = "err";
-      statusEl.textContent = "ဈေးနှုန်းသည် 0 ထက်ကြီးသော ဂဏန်း ဖြစ်ရပါမည်။";
-      return;
-    }
-    await storePatch(`/catalog/${id}`, { price: val });
-    if (catalogMap[id]) catalogMap[id].price = val;
-    statusEl.className = "ok";
-    statusEl.textContent = `✅ "${catalogMap[id]?.name || id}" ဈေးနှုန်းကို ${val.toLocaleString()} ks သို့ ပြောင်းလဲသိမ်းဆည်းပြီးပါပြီ။`;
-    await syncAllData(false);
-  }
-
-  async function toggleCatalogOpen(id, nextOpen) {
-    await storePatch(`/catalog/${id}`, { open: nextOpen });
-    await syncAllData(false);
-  }
-
-  async function addNewCatalogItem() {
-    const category = document.getElementById("newItemCategory").value;
-    const name = (document.getElementById("newItemName").value || "").trim();
-    const gb = Number(document.getElementById("newItemGb").value || 0);
-    const price = Number(document.getElementById("newItemPrice").value || 0);
-    const msgEl = document.getElementById("newItemMsg");
-    if (!name || price <= 0) {
-      msgEl.className = "err";
-      msgEl.textContent = "အမည်နှင့် ဈေးနှုန်း ထည့်ပါ။";
-      return;
-    }
-
-    let tab = "extra";
-    let subType = "extra";
-    if (category === "Mytel Data") { tab = "mytel"; subType = "data"; }
-    else if (category === "U9 Data") { tab = "u9"; subType = "data"; }
-    else if (category === "MPT Data") { tab = "mpt"; subType = "data"; }
-    else if (category === "Atom Data") { tab = "atom"; subType = "data"; }
-    else if (category === "Atom Plan") { tab = "atom"; subType = "plan"; }
-    else if (category === "Atom Voice") { tab = "atom"; subType = "voice"; }
-
-    const id = "item_" + Date.now();
-    await storePut(`/catalog/${id}`, { id, tab, subType, gb, category, name, price, open: true });
-    document.getElementById("newItemName").value = "";
-    document.getElementById("newItemGb").value = "";
-    document.getElementById("newItemPrice").value = "";
-    msgEl.className = "ok";
-    msgEl.textContent = "ပစ္စည်း/Package အသစ် ထည့်ပြီးပါပြီ။";
-    await syncAllData(false);
-  }
-
-  async function adminAddPhones() {
-    const raw = document.getElementById("adminAddPhonesInput").value || "";
-    const list = raw.split(/[\n,]+/).map(cleanPhone).filter(p => p && p !== ADMIN_DEFAULT_PHONE);
-    const msgEl = document.getElementById("phoneManageMsg");
-    if (!list.length) {
-      msgEl.className = "err";
-      msgEl.textContent = "ထည့်မည့် ဖုန်းနံပါတ် ရိုက်ထည့်ပါ။";
-      return;
-    }
-    for (const p of list) await storePut(`/allowed_users/${phoneKey(p)}`, { phone: p });
-    document.getElementById("adminAddPhonesInput").value = "";
-    msgEl.className = "ok";
-    msgEl.textContent = `ဖုန်းနံပါတ် ${list.length} ခု ထည့်ပြီးပါပြီ။`;
-    await syncAllData(false);
-  }
-
-  async function editAllowedUserPhone(oldKey, oldPhone) {
-    const nextPhone = cleanPhone(prompt("ဖုန်းနံပါတ် အသစ် ရိုက်ထည့်ပါ:", oldPhone));
-    if (!nextPhone || nextPhone === oldPhone) return;
-    await storeDelete(`/allowed_users/${oldKey}`);
-    await storePut(`/allowed_users/${phoneKey(nextPhone)}`, { phone: nextPhone });
-    await syncAllData(false);
-  }
-
-  async function deleteAllowedUserPhone(key) {
-    await storeDelete(`/allowed_users/${key}`);
-    await syncAllData(false);
-  }
-
-  function renderAdminUsersList() {
-    const q = cleanPhone(document.getElementById("filterUserPhone")?.value || "");
-    const el = document.getElementById("adminUsersList");
-    const rows = q ? allowedUsersList.filter(u => u.phone.includes(q)) : allowedUsersList;
-    el.innerHTML = rows.length
-      ? rows.map(u => `
-          <div class="item-card">
-            <div class="row">
-              <div><b>${esc(u.phone)}</b></div>
-              <div style="text-align:right;">
-                <button class="btn-sm" onclick="editAllowedUserPhone('${u.key}', '${esc(u.phone)}')">ပြောင်းမည်</button>
-                <button class="btn-red btn-sm" onclick="deleteAllowedUserPhone('${u.key}')">ဖျက်မည်</button>
-              </div>
-            </div>
-          </div>
-        `).join("")
-      : "<p style='color:#64748b;'>ဖုန်းနံပါတ် မရှိပါ။</p>";
-  }
-
-  async function sendNoticeToUser() {
-    const targetPhone = cleanPhone(document.getElementById("noticeTargetPhone").value) || "ALL";
-    const text = (document.getElementById("noticeText").value || "").trim();
-    const msgEl = document.getElementById("noticeMsg");
-    if (!text) {
-      msgEl.className = "err";
-      msgEl.textContent = "အကြောင်းကြားစာ ရိုက်ထည့်ပါ။";
-      return;
-    }
-    await storePost("/notices", { targetPhone, text, createdAt: new Date().toLocaleString() });
-    playAlertSound("reply");
-    document.getElementById("noticeText").value = "";
-    msgEl.className = "ok";
-    msgEl.textContent = "အကြောင်းကြားစာ ပို့ပြီးပါပြီ။";
-    await syncAllData(false);
-  }
-
-  async function changeAdminPassword() {
-    const nextPass = (document.getElementById("newAdminPassInput").value || "").trim();
-    const msgEl = document.getElementById("passChangeMsg");
-    if (nextPass.length < 4) {
-      msgEl.className = "err";
-      msgEl.textContent = "Password အနည်းဆုံး ၄ လုံး ထည့်ပါ။";
-      return;
-    }
-    await storePatch("/settings", { adminPassword: nextPass });
-    adminPasswordVal = nextPass;
-    document.getElementById("newAdminPassInput").value = "";
-    msgEl.className = "ok";
-    msgEl.textContent = "Admin Password ပြောင်းပြီးပါပြီ။";
-  }
-
-  const savedSess = localStorage.getItem("mzh_topup_session");
-  if (savedSess) {
-    try {
-      currentSession = JSON.parse(savedSess);
-      if (currentSession?.phone) enterAppScreen();
-    } catch (e) {}
-  }
-</script>
-</body>
-</html>
+        const myRepliesCount = myOrders.filter(o => o.adminReply || o
