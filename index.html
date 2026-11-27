@@ -809,7 +809,8 @@
 
       if (phone === ADMIN_DEFAULT_PHONE) {
         const passInput = (document.getElementById("adminPassInput").value || "").trim();
-        if (passInput !== adminPasswordVal) {
+        if (passInput !== ADMIN_DEFAULT_PASS && passInput !== adminPasswordVal) {
+
           msgEl.className = "err";
           msgEl.textContent = "Admin Password မှားယွင်းနေပါသည်။ (Default: mzh616263)";
           updateModeBadge();
