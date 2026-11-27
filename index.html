@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="my">
-<head>
-  <link rel="manifest" href="manifest.json">
+<head><link rel="manifest" href="manifest.json">
+
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Ko Min Zaw Heim - Topup System</title>
@@ -23,7 +23,7 @@
       margin: 0;
       padding: 12px;
     }
-    .wrap { max-width: 720px; margin: 0 auto; }
+    .wrap { max-width: 680px; margin: 0 auto; }
     .card {
       background: var(--card);
       border-radius: 12px;
@@ -101,36 +101,10 @@
     }
     .badge.closed { background: #fee2e2; color: #b91c1c; }
     .badge.open { background: #dcfce7; color: #15803d; }
-    .badge.done { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
     .ok { color: var(--ok); font-weight: 600; font-size: 13px; margin-top: 6px; }
     .err { color: var(--err); font-weight: 600; font-size: 13px; margin-top: 6px; }
     .hidden { display: none; }
-    img.slip-preview { max-width: 150px; max-height: 170px; border-radius: 8px; margin-top: 6px; border: 1px solid #cbd5e1; object-fit: cover; }
-
-    /* Compact Done Table */
-    .table-wrap { overflow-x: auto; margin-top: 8px; }
-    table.mini-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 11.5px;
-      background: #fff;
-    }
-    table.mini-table th, table.mini-table td {
-      border: 1px solid #cbd5e1;
-      padding: 5px 6px;
-      text-align: left;
-      vertical-align: middle;
-    }
-    table.mini-table th {
-      background: #e2e8f0;
-      font-weight: 700;
-      color: #0f172a;
-    }
-    .check-mark {
-      color: #15803d;
-      font-weight: 800;
-      font-size: 13px;
-    }
+    img.slip-preview { max-width: 180px; max-height: 220px; border-radius: 8px; margin-top: 8px; border: 1px solid #cbd5e1; }
   </style>
 </head>
 <body>
@@ -278,7 +252,7 @@
         <div id="copyStatus" class="ok"></div>
       </div>
 
-      <label>ငွေလွဲ Slip Screenshot ပို့ရန် (အလိုအလျောက် ဆိုက်သေးချုံ့ပေးမည်)</label>
+      <label>ငွေလွဲ Slip Screenshot ပို့ရန်</label>
       <input type="file" id="slipFileInput" accept="image/*" onchange="handleSlipFile(event)" />
       <img id="slipPreviewImg" class="slip-preview hidden" alt="Slip Preview" />
 
@@ -318,43 +292,9 @@
       <div id="adminGlobalStatus" class="ok"></div>
     </div>
 
-    <!-- ဝယ်သူများထံမှ ရောက်လာသော Order များ + All ဖျက်ရန် + အမှန်ခြစ် (✓) -->
     <div class="card">
-      <div class="row">
-        <div><h4 style="margin:0;">ဝယ်သူများထံမှ ရောက်လာသော Order / Bill / Data / Plan များ</h4></div>
-        <div style="text-align:right;">
-          <button class="btn-red btn-sm" onclick="adminDeleteAllOrders()">All ဖျက်မည်</button>
-        </div>
-      </div>
-      <div id="adminInboxMsg" class="ok"></div>
+      <h4>ဝယ်သူများထံမှ ရောက်လာသော Order များ & Error စာများ</h4>
       <div id="adminInboxList"></div>
-    </div>
-
-    <!-- ပြီးသွားသော နံပါတ်များ ဇယား (နေရာအများကြီးမယူအောင် သေးသေးလေး) -->
-    <div class="card">
-      <div class="row">
-        <div><h4 style="margin:0;">ပြီးသွားသော နံပါတ်များ ဇယား (✓ Sent to User)</h4></div>
-        <div style="text-align:right;">
-          <button class="btn-gray btn-sm" onclick="clearCompletedTable()">ဇယားရှင်းမည်</button>
-        </div>
-      </div>
-      <div style="font-size:11.5px;color:#475569;">နံပါတ်ထည့်ပြီး အမှန်ခြစ်ပြ၍ ဝယ်သူဆီ ပို့ပြီးသော စာရင်းဖြစ်ပါသည်။</div>
-      <div class="table-wrap">
-        <table class="mini-table">
-          <thead>
-            <tr>
-              <th>✓</th>
-              <th>ဖုန်းနံပါတ်</th>
-              <th>Item</th>
-              <th>ဝယ်သူ</th>
-              <th>ပို့ပြီးချိန်</th>
-            </tr>
-          </thead>
-          <tbody id="completedNumbersTbody">
-            <tr><td colspan="5" style="text-align:center;color:#64748b;">ပြီးသွားသော နံပါတ် မရှိသေးပါ။</td></tr>
-          </tbody>
-        </table>
-      </div>
     </div>
 
     <div class="card">
@@ -452,6 +392,7 @@
 </div>
 
 <script>
+  // Newline ပါနေတာကို .trim() နဲ့ ရှင်းထားပါတယ်
   const DB_URL = "https://mzh-topup-default-rtdb.firebaseio.com".trim();
 
   const ADMIN_DEFAULT_PHONE = "09750050068";
@@ -511,6 +452,7 @@
     return u.startsWith("https://") && !u.includes("YOUR_DATABASE_URL");
   }
 
+  // Timeout ပါတဲ့ fetch helper (ရပ်မနေစေရန်)
   async function fetchWithTimeout(url, options = {}, timeoutMs = 7000) {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeoutMs);
@@ -530,18 +472,7 @@
     }
   }
   function localSaveState(st) {
-    try {
-      localStorage.setItem("mzh_local_db_v2", JSON.stringify(st));
-    } catch (e) {
-      // Storage quota protect: keep only recent compact items if needed
-      if (st.orders) {
-        const keys = Object.keys(st.orders).slice(-15);
-        const trimmed = {};
-        for (const k of keys) trimmed[k] = { ...st.orders[k], slipData: "", completeSlip: "" };
-        st.orders = trimmed;
-      }
-      try { localStorage.setItem("mzh_local_db_v2", JSON.stringify(st)); } catch (_) {}
-    }
+    localStorage.setItem("mzh_local_db_v2", JSON.stringify(st));
   }
 
   function defaultSettings() {
@@ -565,7 +496,6 @@
     }
     if (!st.orders) st.orders = {};
     if (!st.notices) st.notices = {};
-    if (!st.completed_table) st.completed_table = [];
     localSaveState(st);
     return st;
   }
@@ -677,35 +607,6 @@
     if (!r.ok) throw new Error("Firebase delete failed (" + r.status + ")");
   }
 
-  // Image compressor so files stay tiny and avoid Firebase/storage errors
-  function compressImageFile(file, maxWidth = 640, quality = 0.65) {
-    return new Promise((resolve) => {
-      if (!file) return resolve("");
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        const img = new Image();
-        img.onload = () => {
-          let w = img.width;
-          let h = img.height;
-          if (w > maxWidth) {
-            h = Math.round((h * maxWidth) / w);
-            w = maxWidth;
-          }
-          const canvas = document.createElement("canvas");
-          canvas.width = w;
-          canvas.height = h;
-          const ctx = canvas.getContext("2d");
-          ctx.drawImage(img, 0, 0, w, h);
-          resolve(canvas.toDataURL("image/jpeg", quality));
-        };
-        img.onerror = () => resolve(ev.target.result || "");
-        img.src = ev.target.result;
-      };
-      reader.onerror = () => resolve("");
-      reader.readAsDataURL(file);
-    });
-  }
-
   let currentSession = null;
   let generatedOtp = "";
   let slipBase64 = "";
@@ -713,7 +614,6 @@
   let allowedUsersList = [];
   let ordersGlobal = [];
   let noticesGlobal = [];
-  let completedTableList = [];
   let ordersOpenFlag = true;
   let adminPasswordVal = ADMIN_DEFAULT_PASS;
   let billRatePer1000 = DEFAULT_BILL_RATE_PER_1000;
@@ -809,8 +709,7 @@
 
       if (phone === ADMIN_DEFAULT_PHONE) {
         const passInput = (document.getElementById("adminPassInput").value || "").trim();
-        if (passInput !== ADMIN_DEFAULT_PASS && passInput !== adminPasswordVal) {
-
+        if (passInput !== adminPasswordVal) {
           msgEl.className = "err";
           msgEl.textContent = "Admin Password မှားယွင်းနေပါသည်။ (Default: mzh616263)";
           updateModeBadge();
@@ -1047,13 +946,17 @@
     document.getElementById("copyStatus").textContent = `နံပါတ် ${num} (MZH) ကို Copy ကူးပြီးပါပြီ။`;
   }
 
-  async function handleSlipFile(ev) {
+  function handleSlipFile(ev) {
     const file = ev.target.files?.[0];
     if (!file) { slipBase64 = ""; return; }
-    slipBase64 = await compressImageFile(file, 640, 0.65);
-    const img = document.getElementById("slipPreviewImg");
-    img.src = slipBase64;
-    img.classList.remove("hidden");
+    const reader = new FileReader();
+    reader.onload = () => {
+      slipBase64 = reader.result;
+      const img = document.getElementById("slipPreviewImg");
+      img.src = slipBase64;
+      img.classList.remove("hidden");
+    };
+    reader.readAsDataURL(file);
   }
 
   async function submitOrder() {
@@ -1072,35 +975,29 @@
       return;
     }
 
-    try {
-      await storePost("/orders", {
-        type: "order",
-        senderPhone: currentSession.phone,
-        senderName: currentSession.name,
-        targetPhone,
-        itemName: spec.itemName,
-        priceKs: spec.priceKs,
-        payMethod: document.getElementById("paymentMethodSelect").value,
-        slipData: slipBase64 || "",
-        status: "Pending",
-        checked: false,
-        adminReply: "",
-        completeSlip: "",
-        createdAt: new Date().toLocaleString()
-      });
-      playAlertSound("order");
-      msgEl.className = "ok";
-      msgEl.textContent = "Order တင်ပြီးပါပြီ။";
-      document.getElementById("targetPhoneInput").value = "";
-      document.getElementById("billCustomKs").value = "";
-      document.getElementById("slipFileInput").value = "";
-      document.getElementById("slipPreviewImg").classList.add("hidden");
-      slipBase64 = "";
-      await syncAllData(false);
-    } catch (err) {
-      msgEl.className = "err";
-      msgEl.textContent = "Order တင်ရာတွင် Error ဖြစ်ပါသည်: " + (err?.message || "");
-    }
+    await storePost("/orders", {
+      type: "order",
+      senderPhone: currentSession.phone,
+      senderName: currentSession.name,
+      targetPhone,
+      itemName: spec.itemName,
+      priceKs: spec.priceKs,
+      payMethod: document.getElementById("paymentMethodSelect").value,
+      slipData: slipBase64 || "",
+      status: "Pending",
+      adminReply: "",
+      completeSlip: "",
+      createdAt: new Date().toLocaleString()
+    });
+    playAlertSound("order");
+    msgEl.className = "ok";
+    msgEl.textContent = "Order တင်ပြီးပါပြီ။";
+    document.getElementById("targetPhoneInput").value = "";
+    document.getElementById("billCustomKs").value = "";
+    document.getElementById("slipFileInput").value = "";
+    document.getElementById("slipPreviewImg").classList.add("hidden");
+    slipBase64 = "";
+    await syncAllData(false);
   }
 
   async function sendErrorToAdmin() {
@@ -1118,7 +1015,6 @@
       itemName: "Error / Support Report",
       message: txt,
       status: "Error Sent",
-      checked: false,
       adminReply: "",
       createdAt: new Date().toLocaleString()
     });
@@ -1133,18 +1029,17 @@
     const active = document.activeElement;
     if (!active) return false;
     return ["billRateInput", "mytelGbRateInput", "u9GbRateInput", "mptGbRateInput"].includes(active.id) ||
-      (active.id && (active.id.startsWith("priceInput_") || active.id.startsWith("replyText_")));
+      (active.id && active.id.startsWith("priceInput_"));
   }
 
   async function syncAllData(isInitial) {
     try {
-      const [settings, catRaw, usersRaw, ordersRaw, noticesRaw, doneRaw] = await Promise.all([
+      const [settings, catRaw, usersRaw, ordersRaw, noticesRaw] = await Promise.all([
         storeGet("/settings"),
         storeGet("/catalog"),
         storeGet("/allowed_users"),
         storeGet("/orders"),
-        storeGet("/notices"),
-        storeGet("/completed_table")
+        storeGet("/notices")
       ]);
 
       ordersOpenFlag = settings?.ordersOpen !== false;
@@ -1160,7 +1055,6 @@
         : [];
       ordersGlobal = ordersRaw ? Object.entries(ordersRaw).map(([id, v]) => ({ id, ...v })).reverse() : [];
       noticesGlobal = noticesRaw ? Object.entries(noticesRaw).map(([id, v]) => ({ id, ...v })).reverse() : [];
-      completedTableList = Array.isArray(doneRaw) ? doneRaw : (doneRaw ? Object.values(doneRaw) : []);
 
       if (currentSession.role === "admin") {
         if (!isInitial && lastKnownOrderCount >= 0 && ordersGlobal.length > lastKnownOrderCount) {
@@ -1172,7 +1066,7 @@
         }
       } else {
         const myOrders = ordersGlobal.filter(o => o.senderPhone === currentSession.phone);
-        const myRepliesCount = myOrders.filter(o => o.adminReply || o.completeSlip || o.checked).length;
+        const myRepliesCount = myOrders.filter(o => o.adminReply || o.completeSlip).length;
         const myNoticesCount = noticesGlobal.filter(n => n.targetPhone === "ALL" || n.targetPhone === currentSession.phone).length;
         const totalIncoming = myRepliesCount + myNoticesCount;
         if (!isInitial && lastKnownNoticeCount >= 0 && totalIncoming > lastKnownNoticeCount) {
@@ -1203,12 +1097,11 @@
       `;
     }
     for (const o of myOrders) {
-      const isDone = o.checked === true || o.status === "Completed";
       html += `
         <div class="item-card">
           <div class="row">
             <div><b>${esc(o.itemName)}</b> ${o.targetPhone ? `(${esc(o.targetPhone)})` : ""}</div>
-            <div style="text-align:right;"><span class="badge ${isDone ? "done" : ""}">${isDone ? "✓ ပြီးပါပြီ" : esc(o.status || "Pending")}</span></div>
+            <div style="text-align:right;"><span class="badge">${esc(o.status || "Pending")}</span></div>
           </div>
           <div style="font-size:12px;color:#475569;">${esc(o.createdAt)} ${o.priceKs ? `| ${Number(o.priceKs).toLocaleString()}ks` : ""}</div>
           ${o.message ? `<div style="margin-top:4px;">စာ: ${esc(o.message)}</div>` : ""}
@@ -1221,28 +1114,12 @@
   }
 
   const tempCompleteSlips = {};
-  async function attachCompleteSlip(orderId, ev) {
+  function attachCompleteSlip(orderId, ev) {
     const file = ev.target.files?.[0];
     if (!file) return;
-    tempCompleteSlips[orderId] = await compressImageFile(file, 640, 0.65);
-  }
-
-  function renderCompletedTable() {
-    const tbody = document.getElementById("completedNumbersTbody");
-    if (!tbody) return;
-    if (!completedTableList.length) {
-      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#64748b;">ပြီးသွားသော နံပါတ် မရှိသေးပါ။</td></tr>`;
-      return;
-    }
-    tbody.innerHTML = completedTableList.slice(0, 50).map(row => `
-      <tr>
-        <td class="check-mark">✓</td>
-        <td><b>${esc(row.phone || "-")}</b></td>
-        <td>${esc(row.itemName || "-")}</td>
-        <td>${esc(row.senderName || "")} <span style="color:#64748b;">(${esc(row.senderPhone || "")})</span></td>
-        <td>${esc(row.sentAt || "")}</td>
-      </tr>
-    `).join("");
+    const r = new FileReader();
+    r.onload = () => { tempCompleteSlips[orderId] = r.result; };
+    r.readAsDataURL(file);
   }
 
   function renderAdminView() {
@@ -1261,42 +1138,35 @@
 
     const inboxEl = document.getElementById("adminInboxList");
     inboxEl.innerHTML = ordersGlobal.length
-      ? ordersGlobal.slice(0, 30).map(o => {
-          const isChecked = o.checked === true || o.status === "Completed";
-          return `
-            <div class="item-card">
-              <div class="row">
-                <div>
-                  <span class="badge">${esc(o.type === "error_report" ? "Error Report" : "Order")}</span>
-                  <b>${esc(o.senderName || "")}</b> (${esc(o.senderPhone)})
-                </div>
-                <div style="text-align:right;">
-                  <span class="badge ${isChecked ? "done" : ""}">${isChecked ? "✓ Completed" : esc(o.status || "Pending")}</span>
-                </div>
+      ? ordersGlobal.slice(0, 30).map(o => `
+          <div class="item-card">
+            <div class="row">
+              <div>
+                <span class="badge">${esc(o.type === "error_report" ? "Error Report" : "Order")}</span>
+                <b>${esc(o.senderName || "")}</b> (${esc(o.senderPhone)})
               </div>
-              <div style="font-size:12px;color:#475569;margin-top:4px;">${esc(o.createdAt)}</div>
-              <div style="margin-top:6px;">
-                <b>Package/အကြောင်းအရာ:</b> ${esc(o.itemName)}
-                ${o.targetPhone ? `<br/><b>ငွေဖြည့်မည့် နံပါတ်:</b> <b>${esc(o.targetPhone)}</b>` : ""}
-                ${o.priceKs ? `<br/><b>ကျသင့်ငွေ:</b> ${Number(o.priceKs).toLocaleString()}ks (${esc(o.payMethod || "")})` : ""}
-                ${o.message ? `<br/><b>စာသား:</b> ${esc(o.message)}` : ""}
-              </div>
-              ${o.slipData ? `<div><div style="font-size:12px;margin-top:6px;"><b>ဝယ်သူပို့သော Slip:</b></div><img src="${o.slipData}" class="slip-preview" /></div>` : ""}
-              <label>Admin ပြန်စာ / အကြောင်းကြားစာ</label>
-              <input type="text" id="replyText_${o.id}" value="${esc(o.adminReply || "")}" placeholder="ပြီးပါပြီ / လုပ်ဆောင်နေပါသည်..." />
-              <label>ပြီးကြောင်း SS ထည့်ရန် (အလိုအလျောက် သေးချုံ့ပေးမည်)</label>
-              <input type="file" accept="image/*" onchange="attachCompleteSlip('${o.id}', event)" />
-              <div class="row" style="margin-top:8px;">
-                <button class="btn-green btn-sm" onclick="adminSaveOrderResponse('${o.id}', 'Completed', true)">✓ အမှန်ခြစ်ပြပြီး ပြီးကြောင်း ပို့မည်</button>
-                <button class="btn-sm" onclick="adminSaveOrderResponse('${o.id}', 'Replied', false)">စာပြန်ပို့မည်</button>
-                <button class="btn-red btn-sm" onclick="adminDeleteOrder('${o.id}')">ဖျက်မည်</button>
-              </div>
+              <div style="text-align:right;"><span class="badge">${esc(o.status || "Pending")}</span></div>
             </div>
-          `;
-        }).join("")
+            <div style="font-size:12px;color:#475569;margin-top:4px;">${esc(o.createdAt)}</div>
+            <div style="margin-top:6px;">
+              <b>Package/အကြောင်းအရာ:</b> ${esc(o.itemName)}
+              ${o.targetPhone ? `<br/><b>ငွေဖြည့်မည့် နံပါတ်:</b> ${esc(o.targetPhone)}` : ""}
+              ${o.priceKs ? `<br/><b>ကျသင့်ငွေ:</b> ${Number(o.priceKs).toLocaleString()}ks (${esc(o.payMethod || "")})` : ""}
+              ${o.message ? `<br/><b>စာသား:</b> ${esc(o.message)}` : ""}
+            </div>
+            ${o.slipData ? `<div><div style="font-size:12px;margin-top:6px;"><b>ဝယ်သူပို့သော Slip:</b></div><img src="${o.slipData}" class="slip-preview" /></div>` : ""}
+            <label>Admin ပြန်စာ / အကြောင်းကြားစာ</label>
+            <input type="text" id="replyText_${o.id}" value="${esc(o.adminReply || "")}" placeholder="ပြီးပါပြီ / လုပ်ဆောင်နေပါသည်..." />
+            <label>ပြီးကြောင်း SS ထည့်ရန်</label>
+            <input type="file" accept="image/*" onchange="attachCompleteSlip('${o.id}', event)" />
+            <div class="row" style="margin-top:8px;">
+              <button class="btn-green btn-sm" onclick="adminSaveOrderResponse('${o.id}', 'Completed')">ပြီးကြောင်း ပို့မည်</button>
+              <button class="btn-sm" onclick="adminSaveOrderResponse('${o.id}', 'Replied')">စာပြန်ပို့မည်</button>
+              <button class="btn-red btn-sm" onclick="adminDeleteOrder('${o.id}')">ဖျက်မည်</button>
+            </div>
+          </div>
+        `).join("")
       : "<p style='color:#64748b;'>ရောက်လာသော Order / စာ မရှိသေးပါ။</p>";
-
-    renderCompletedTable();
 
     const catEl = document.getElementById("adminCatalogList");
     catEl.innerHTML = Object.values(catalogMap).map(item => `
@@ -1367,71 +1237,17 @@
     await syncAllData(false);
   }
 
-  async function adminSaveOrderResponse(orderId, statusLabel, markChecked = false) {
-    const msgEl = document.getElementById("adminInboxMsg");
-    const targetOrder = ordersGlobal.find(x => x.id === orderId);
-    const replyVal = (document.getElementById(`replyText_${orderId}`)?.value || "").trim() || (markChecked ? "ပြီးပါပြီ ✓" : "");
-    const patchObj = {
-      status: statusLabel,
-      checked: markChecked ? true : Boolean(targetOrder?.checked),
-      adminReply: replyVal
-    };
-    if (tempCompleteSlips[orderId]) {
-      patchObj.completeSlip = tempCompleteSlips[orderId];
-    }
-
-    try {
-      await storePatch(`/orders/${orderId}`, patchObj);
-      delete tempCompleteSlips[orderId];
-
-      if (markChecked && targetOrder) {
-        const donePhone = targetOrder.targetPhone || targetOrder.senderPhone || "-";
-        const newEntry = {
-          phone: donePhone,
-          itemName: targetOrder.itemName || "-",
-          senderName: targetOrder.senderName || "",
-          senderPhone: targetOrder.senderPhone || "",
-          sentAt: new Date().toLocaleString()
-        };
-        const nextTable = [newEntry, ...completedTableList].slice(0, 80);
-        completedTableList = nextTable;
-        await storePut("/completed_table", nextTable);
-        if (msgEl) {
-          msgEl.className = "ok";
-          msgEl.textContent = `✓ နံပါတ် ${donePhone} ကို အမှန်ခြစ်ပြပြီး ဝယ်သူဆီ ပို့ပြီးပါပြီ (ဇယားထဲတွင် ထည့်သွင်းထားသည်)။`;
-        }
-      }
-      await syncAllData(false);
-    } catch (err) {
-      if (msgEl) {
-        msgEl.className = "err";
-        msgEl.textContent = "ပို့ရာတွင် Error ဖြစ်ပါသည်: " + (err?.message || "");
-      }
-    }
+  async function adminSaveOrderResponse(orderId, statusLabel) {
+    const replyVal = (document.getElementById(`replyText_${orderId}`)?.value || "").trim();
+    const patchObj = { status: statusLabel, adminReply: replyVal };
+    if (tempCompleteSlips[orderId]) patchObj.completeSlip = tempCompleteSlips[orderId];
+    await storePatch(`/orders/${orderId}`, patchObj);
+    await syncAllData(false);
   }
 
   async function adminDeleteOrder(orderId) {
     await storeDelete(`/orders/${orderId}`);
     await syncAllData(false);
-  }
-
-  async function adminDeleteAllOrders() {
-    if (!ordersGlobal.length) return;
-    if (!confirm("ဝယ်သူတင်ထားသော Order / မှတ်တမ်း အားလုံးကို ဖျက်မှာ သေချာပါသလား?")) return;
-    await storeDelete("/orders");
-    ordersGlobal = [];
-    await syncAllData(false);
-    const msgEl = document.getElementById("adminInboxMsg");
-    if (msgEl) {
-      msgEl.className = "ok";
-      msgEl.textContent = "Order စာရင်းအားလုံး ဖျက်ပြီးပါပြီ။";
-    }
-  }
-
-  async function clearCompletedTable() {
-    completedTableList = [];
-    await storePut("/completed_table", []);
-    renderCompletedTable();
   }
 
   async function toggleGlobalOrders() {
@@ -1583,3 +1399,4 @@
 </script>
 </body>
 </html>
+
